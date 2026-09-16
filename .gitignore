@@ -1,0 +1,7 @@
+# IDE Artifacts
+.idea
+
+# Ignore all environment files, dev exception
+*.env*
+
+!dev.env

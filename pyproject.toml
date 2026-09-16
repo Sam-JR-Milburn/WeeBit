@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "weebit"
+version = "1.0.0"
+description = "A deterministic, high-performance link shortener application."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Sam Milburn" }
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "pydantic>=2.6.0",
+    "sqlalchemy[asyncio]==2.0.53",
+    "asyncpg>=0.29.0",
+    "redis>=5.0.3",
+    "alembic>=1.13.1",
+    "uliweb-alembic>=0.6.9",
+]
+
+# Configure hatchling to find source code in src/weebit
+[tool.hatch.build.targets.wheel]
+packages = ["src/weebit"]
