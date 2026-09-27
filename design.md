@@ -28,7 +28,6 @@ if it does, you'll return the existing 'wee bit'.
 >Request: POST **/api/link**
 >>Send a link (JSON in body) to be normalised and stored for access. 
 >>
->>This includes a "include tracking params" flag, that is false by default. 
 >
 >Response: 201 Created
 >>Returned if the link has been normalised and stored and is new. 
@@ -117,4 +116,7 @@ The API will be connected to a Redis cache for first-lookup.
 The SRC-to-Normalised-URL will be the format. 
 
 When a link is saved, it's cached for 15 minutes. 
-When a link is accessed, 5 minutes are added to its cache time, or set if it's out-of-cache. 
+When a link is accessed, 5 minutes are added to its cache time, or set if it's out-of-cache.
+
+<br />
+<br />

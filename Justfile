@@ -1,12 +1,10 @@
 set dotenv-load := true
 
 # Ensure local .env exists
-init-env-all:
-    @test -f .env || cp .dev.env .env
 init-env:
-    @test -f .env || cp .env
+    @test -f .env || cp .dev.env .env
 
-db-up-dev: init-env-all
+db-up-dev: init-env
     docker compose --env-file dev.env up -d --wait
 db-up: init-env
     docker compose up -d --wait
@@ -15,9 +13,15 @@ db-up: init-env
 db-migrate:
     uv run alembic upgrade head
 
+inspect-db:
+    nohup beekeeper-studio >/dev/null 2>&1 &
+
 # Run the development app, await service startup and DB migrations
 dev: db-up-dev db-migrate
-    uv run uvicorn weebit.main:app --reload --port 8000
+    uv run uvicorn weebit.main:app --reload --port 8080
+
+prod: db-up db-migrate
+    uv run uvicorn weebit.main:app --reload --port 8080
 
 # Shutdown containers
 down:

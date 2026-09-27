@@ -9,15 +9,21 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # SQLAlchemy Base and Models
-# ----
+from weebit.database import Base
+from weebit.modules.links.models import Link # noqa: F401
 
 # Setup Alembic config object and logging
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ----
-target_metadata = None
+target_metadata = Base.metadata
+
+from pathlib import Path
+from dotenv import load_dotenv
+env_path = Path(__file__).resolve().parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
 
 def get_connection_string() -> str:
     user = os.getenv("POSTGRES_USER", "")
