@@ -145,6 +145,14 @@ async def redirect_with_src(
     cache_src_key = f"code:{short_ref_code}"
     cached_url: str | None = await cache.get(key=cache_src_key)
     if cached_url:
+        try:
+            ttl = await cache.ttl(key=cache_src_key)
+        except (AttributeError, TypeError):
+            ttl = 0 # Fallback if cache backend doesn't support TTL lookup
+
+        # Set the TTL to be 5 mins if and only if the TTL is less.
+        if ttl is None or ttl < DEFAULT_CACHE_HIT_TTL:
+            await cache.set(cache_src_key, cached_url, ttl=DEFAULT_CACHE_HIT_TTL)
         return models.Link(short_ref_code=short_ref_code, normalised_url=cached_url)
 
     # Check db
