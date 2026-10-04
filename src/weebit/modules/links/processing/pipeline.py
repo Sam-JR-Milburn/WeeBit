@@ -30,8 +30,9 @@ def normalise_http_scheme(url: str) -> str:
     components: tuple[str, str, str, str, str] = (
         scheme, # 'https'
         netloc, # 'google.com'
-        path, # ''
-        split_url.query, split_url.fragment
+        path, # 'search'
+        split_url.query, # q=project+zomboid+map
+        split_url.fragment # pagesection
     )
     return urlunsplit(components)
 

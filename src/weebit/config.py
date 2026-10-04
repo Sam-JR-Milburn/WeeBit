@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Overrides
@@ -6,7 +7,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Misc config
-    HOSTNAME = "localhost"
+    HOSTNAME: str = "localhost"
 
     # DB config
     DB_USER: str = "weebit_srvc_acc"
@@ -23,6 +24,6 @@ class Settings(BaseSettings):
     REDIS_URL: str = "localhost"
     REDIS_PORT: int = 6379
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=os.getenv("ENV_FILE"), env_file_encoding="utf-8", extra="ignore")
 
-settings = Settings()
+settings = Settings(_env_file=os.getenv("ENV_FILE", ".env"))

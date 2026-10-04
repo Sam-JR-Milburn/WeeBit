@@ -10,18 +10,18 @@ db-up: init-env
     docker compose up -d --wait
 
 # Make schema changes
-db-migrate:
-    uv run alembic upgrade head
+db-migrate env_file=".env":
+    ENV_FILE={{env_file}} uv run alembic upgrade head
 
 inspect-db:
     nohup beekeeper-studio >/dev/null 2>&1 &
 
 # Run the development app, await service startup and DB migrations
-dev: db-up-dev db-migrate
-    uv run uvicorn weebit.main:app --reload --port 8080
+dev: db-up-dev (db-migrate "dev.env")
+    ENV_FILE=dev.env uv run uvicorn weebit.main:app --reload --port 8080
 
-prod: db-up db-migrate
-    uv run uvicorn weebit.main:app --reload --port 8080
+prod: db-up (db-migrate ".env")
+    ENV_FILE=.env uv run uvicorn weebit.main:app --reload --port 8080
 
 # Shutdown containers
 down:

@@ -21,7 +21,8 @@ target_metadata = Base.metadata
 
 from pathlib import Path
 from dotenv import load_dotenv
-env_path = Path(__file__).resolve().parent.parent / ".env"
+env_file_name = os.getenv("ENV_FILE", ".env")
+env_path = Path(__file__).resolve().parent.parent / env_file_name
 if env_path.exists():
     load_dotenv(env_path)
 

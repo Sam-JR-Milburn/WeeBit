@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Response, HTTPException, status
-
-from weebit.modules.links.models import Link
+from fastapi.responses import RedirectResponse
 
 api_router = APIRouter(prefix="/api/link", tags=["Links API"])
 redirect_router = APIRouter(tags=["Short code redirect"])
@@ -13,9 +12,8 @@ from weebit.cache import get_redis
 
 from weebit.modules.links import schemas, service, models
 
-
 @api_router.post(
-    "",
+    path="",
     response_model=schemas.LinkResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
@@ -23,7 +21,8 @@ from weebit.modules.links import schemas, service, models
         201: { "description": "If a new short referrer code link has been created." },
         400: { "description": "If there's been a general error in handling the link." },
         422: { "description": "If the link is non-HTTP (plaintext, 'javascript:', 'ftp://', ...) or self-referential." },
-    }
+    },
+    summary="Create a new short referrer link",
 )
 async def create_link(
     payload: schemas.LinkCreate,
@@ -60,3 +59,34 @@ async def create_link(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(err)
         )
+
+
+@redirect_router.get(
+    path="/{short_referrer_code}",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    responses={
+        307: { "description": "Redirect to the stored URL if the SRC is valid." },
+        404: { "description": "Yield an error if the SRC is not valid." }
+    },
+)
+async def redirect(
+        short_referrer_code: str,
+        db: AsyncSession = Depends(get_db),
+        cache: BaseCache = Depends(get_redis)
+) -> RedirectResponse:
+    """Ingests the short referrer code from the route and redirects if valid.
+    Args:
+        short_referrer_code:
+        db: Injected database session.
+        cache: Injected cache session.
+    Returns:
+        URL redirection (on valid route input)
+    Raises:
+        HTTPException: If the SRC doesn't exist in the database.
+    """
+
+    try:
+        link_object = await service.redirect_with_src(short_referrer_code, db, cache)
+        return RedirectResponse(url=str(link_object.normalised_url))
+    except service.LinkServiceError as err:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
