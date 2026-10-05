@@ -1,4 +1,5 @@
 import os
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Overrides
@@ -10,11 +11,11 @@ class Settings(BaseSettings):
     HOSTNAME: str = "localhost"
 
     # DB config
-    DB_USER: str = "weebit_srvc_acc"
-    DB_PASSWORD: str = "fallbackpassword"
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 5432
-    DB_NAME: str = "weebit_db"
+    DB_USER: str = Field(validation_alias="POSTGRES_USER") # "weebit_srvc_acc"
+    DB_PASSWORD: str = Field(validation_alias="POSTGRES_PASSWORD") # "fallbackpassword"
+    DB_HOST: str = Field(default="localhost", validation_alias="POSTGRES_HOST") # "localhost"
+    DB_PORT: int = Field(default=5432, validation_alias="POSTGRES_PORT") # 5432
+    DB_NAME: str = Field(validation_alias="POSTGRES_DB") # "weebit_db"
 
     @property
     def DATABASE_URL(self) -> str:
