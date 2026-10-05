@@ -12,17 +12,21 @@ from weebit.modules.links.processing.encoding import url_to_int256, encode_base6
 class LinkServiceError(Exception):
     pass
 
+'''
 # For links pointing at the service itself.
+# Requires pre-image/hash collision - infeasible even on interstellar timelines.
 class SelfReferentialLinkError(Exception):
     pass
+'''
 
 class InvalidUrlError(LinkServiceError):
     pass
 
 # For checking URL validity
-from pydantic import HttpUrl, TypeAdapter, ValidationError
-_url_adapter = TypeAdapter(HttpUrl)
+#from pydantic import HttpUrl, TypeAdapter, ValidationError
+#_url_adapter = TypeAdapter(HttpUrl)
 
+'''
 def parse_and_validate_url(url: str) -> HttpUrl:
     """
     Args:
@@ -39,21 +43,7 @@ def parse_and_validate_url(url: str) -> HttpUrl:
         return _url_adapter.validate_python(url)
     except ValidationError as vErr:
         raise InvalidUrlError(f"URL has invalid format/non-HTTP scheme: {vErr}")
-
-def assert_url_not_self_referential(url: HttpUrl) -> None:
-    """
-    Returns:
-        Whether the submitted link points to the link shortener service itself.
-        Can cause infinite redirect - arrested by most modern browsers.
-    """
-    host = url.host
-    if not host:
-        return
-    url_host: str = host.lower()
-    self_hostname = settings.HOSTNAME.lower()
-
-    if url_host == self_hostname or url_host.endswith(f".{self_hostname}"):
-        raise SelfReferentialLinkError(f"Can't shorten URLs pointing to the service domain: {self_hostname}")
+'''
 
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
@@ -73,10 +63,9 @@ async def get_or_create_link(
     """
 
     # Ingest URL, validate, normalise
-    url = parse_and_validate_url(str(payload.url))
-    assert_url_not_self_referential(url)
+    #url = parse_and_validate_url(str(payload.url))
     try:
-        normalised_url = normalise_url(str(url))
+        normalised_url = normalise_url(str(payload.url))
     except Exception as err:
         raise LinkServiceError(f"Parsing failed: {err}")
 

@@ -5,13 +5,32 @@ UrlTransformer = Callable[[str], str]
 
 from pydantic import HttpUrl, TypeAdapter, ValidationError
 
-from urllib.parse import urlparse, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 # 1. Strip Whitespace
 def strip_whitespace(url: str) -> str:
     return url.strip()
 
-# 2. HTTP RFC 3986, lowercase scheme + hostname remove trailing port, remove trailing path
+
+# 2. HTTP Parsing
+_url_adapter = TypeAdapter(HttpUrl)
+def parse_and_validate_url(url: str) -> str:
+    """
+    Args:
+        url: Raw URL string.
+    Returns:
+        HttpUrl: An HttpUrl object, if the URL has a valid scheme.
+    Raises:
+        ValidationError: If the URL has an invalid scheme.
+    """
+    if not isinstance(url, str):
+        raise ValidationError("URL is not a string")
+
+    # Can throw a ValidationError, where it will be caught and repassed as a LinkServiceError
+    return str(_url_adapter.validate_python(url))
+
+
+# 3. HTTP RFC 3986, lowercase scheme + hostname remove trailing port, remove trailing path
 def normalise_http_scheme(url: str) -> str:
     split_url = urlsplit(url)
 
@@ -36,8 +55,6 @@ def normalise_http_scheme(url: str) -> str:
     )
     return urlunsplit(components)
 
-# 3. Percent-Encoding Normalization
-
 # Optional: Order the query params alphabetically (by key)
 # ----
 
@@ -49,6 +66,7 @@ def normalise_http_scheme(url: str) -> str:
 
 # Normalise the URL in order
 NORMALISATION_PIPELINE: Sequence[UrlTransformer] = [
+    parse_and_validate_url,
     strip_whitespace,
     normalise_http_scheme,
     # Percent-Encoding Case Normalization (RFC 3986 §6.2.2.1) and

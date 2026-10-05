@@ -1,0 +1,22 @@
+info:
+  name: "Submit link #1"
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{ServerName}}/api/link"
+  body:
+    type: json
+    data: |-
+      {
+        "url": "https://en.wikipedia.org/wiki/Zen_of_Python#Principles"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

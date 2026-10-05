@@ -1,0 +1,22 @@
+info:
+  name: "Dangerous #2"
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{ServerName}}/api/link"
+  body:
+    type: json
+    data: |-
+      {
+        "url": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,22 @@
+info:
+  name: "Submit link #2"
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{ServerName}}/api/link"
+  body:
+    type: json
+    data: |-
+      {
+        "url": "https://www.youtube.com/watch?v=dZ2NQ-xQINI"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

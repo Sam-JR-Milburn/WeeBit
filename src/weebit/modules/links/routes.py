@@ -49,7 +49,7 @@ async def create_link(
         response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return link_object
 
-    except (service.InvalidUrlError, service.SelfReferentialLinkError) as err:
+    except service.InvalidUrlError as err:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(err)

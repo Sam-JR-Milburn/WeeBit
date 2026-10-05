@@ -1,0 +1,6 @@
+name: WeeBit Environment
+color: "#2E8A54"
+variables:
+  - name: ServerName
+    value: localhost:8080
+    description: ""

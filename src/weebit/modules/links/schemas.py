@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl, Field, ConfigDict, field_validator
-
+from urllib.parse import urlparse
 
 class LinkCreate(BaseModel):
     url: HttpUrl = Field(..., description="The link submission for normalisation and shortening")
@@ -9,8 +9,10 @@ class LinkCreate(BaseModel):
     def ensure_url_scheme(cls, value: str) -> str:
         if isinstance(value, str):
             value = value.strip()
+            parsed = urlparse(value)
+
             # prepend https://
-            if not (value.startswith("http://") or value.startswith("https://")):
+            if not parsed.scheme:
                 return f"https://{value}"
         return value
 

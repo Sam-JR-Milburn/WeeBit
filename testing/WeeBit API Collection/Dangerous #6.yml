@@ -1,0 +1,22 @@
+info:
+  name: "Dangerous #6"
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{ServerName}}/api/link"
+  body:
+    type: json
+    data: |-
+      {
+        "url": "ssh://git@github.com/user/repo.git"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
