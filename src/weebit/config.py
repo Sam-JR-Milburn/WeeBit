@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     # Cache config
     REDIS_URL: str = "localhost"
     REDIS_PORT: int = 6379
+    
+    # Ingest allowed origins for frontend.
+    allowed_origins: list[str] = Field(
+        default=[
+            "http://localhost:3080",
+            "http://127.0.0.1:3080",
+        ]
+    )
 
     model_config = SettingsConfigDict(env_file=os.getenv("ENV_FILE"), env_file_encoding="utf-8", extra="ignore")
 

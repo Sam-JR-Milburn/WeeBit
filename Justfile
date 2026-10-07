@@ -16,13 +16,24 @@ db-migrate env_file=".env":
 inspect-db:
     nohup beekeeper-studio >/dev/null 2>&1 &
 
-# Run the development app, await service startup and DB migrations
-dev: db-up-dev (db-migrate "dev.env")
+# Start the backend API
+backend-dev: db-up-dev (db-migrate "dev.env")
     ENV_FILE=dev.env uv run uvicorn weebit.main:app --reload --port 8080
-
-prod: db-up (db-migrate ".env")
+backend-prod: db-up (db-migrate ".env")
     ENV_FILE=.env uv run uvicorn weebit.main:app --reload --port 8080
 
+# Run the NextJS frontend. 
+frontend-dev:
+    cd frontend && npm run dev
+frontend-prod:
+    cd frontend && npm run dev
+
+# Run the development app system, await service startup and DB migrations
+[parallel]
+dev: backend-dev frontend-dev
+
+prod: backend-prod frontend-prod
+    
 # Shutdown containers
 down:
     docker compose down

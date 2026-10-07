@@ -46,7 +46,11 @@ async def create_link(
     try:
         link_object, created = await service.get_or_create_link(db, cache, payload)
 
-        response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        if created:
+            response.status_code = status.HTTP_201_CREATED
+            response.headers["Location"] = f"/{link_object.short_ref_code}"
+        else:
+            response.status_code = status.HTTP_200_OK
         return link_object
 
     except service.InvalidUrlError as err:
@@ -87,6 +91,9 @@ async def redirect(
 
     try:
         link_object = await service.redirect_with_src(short_referrer_code, db, cache)
-        return RedirectResponse(url=str(link_object.normalised_url))
+        response = RedirectResponse(url=str(link_object.normalised_url))
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+
+        return response
     except service.LinkServiceError as err:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
