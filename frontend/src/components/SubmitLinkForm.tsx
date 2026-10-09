@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LinkApi } from "@/lib/api";
+import {linkSubmissionSchema} from "@/lib/schemas";
 
 export default function SubmitLinkForm() {
     const [submitUrl, setSubmitUrl] = useState<string>("");
@@ -16,10 +17,22 @@ export default function SubmitLinkForm() {
         e.preventDefault();
         setError(null);
         setCopied(false);
+
+        // Preprocess
+        const validationResult = linkSubmissionSchema.safeParse({ url: submitUrl });
+        if (!validationResult.success) {
+            try {
+                setError(validationResult.error.issues[0].message);
+            } catch {
+                setError("Failed to parse URL");
+            }
+            return;
+        }
+        const parsedUrl = validationResult.data.url;
         setLoading(true);
 
         try {
-            const data = await LinkApi.createLink({ url: submitUrl });
+            const data = await LinkApi.createLink({ url: parsedUrl });
             const redirectUrl = LinkApi.buildShareableUrl(data.short_ref_code);
             setShortUrl(redirectUrl);
         } catch(err: unknown) {
@@ -34,7 +47,7 @@ export default function SubmitLinkForm() {
         if (!shortUrl) return;
         await navigator.clipboard.writeText(shortUrl);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => setCopied(false), 3000);
     }
 
     return (
@@ -51,7 +64,7 @@ export default function SubmitLinkForm() {
             <form onSubmit={handleSubmit} className={"w-full"}>
                 <div className={"w-full h-12 bg-[#141414] border border-[#ffffff] focus-within:border-[#ffffff] rounded-lg p-1.5 flex items-center justify-between transition gap-2"}>
                     <input
-                        type={"url"}
+                        type={"text"}
                         required
                         value={submitUrl}
                         onChange={(e) => setSubmitUrl(e.target.value)}
