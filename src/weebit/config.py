@@ -1,5 +1,6 @@
 import os
-from pydantic import Field
+from typing import Union
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Overrides
@@ -26,12 +27,23 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     
     # Ingest allowed origins for frontend.
-    allowed_origins: list[str] = Field(
+    allowed_origins: Union[list[str], str] = Field(
         default=[
             "http://localhost:3080",
             "http://127.0.0.1:3080",
         ]
     )
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, v: Union[str, list[str]]) -> list[str]:
+        if isinstance(v, str):
+            v_trimmed = v.strip().strip("'\"")
+            if v_trimmed.startswith("[") and v_trimmed.endswith("]"):
+                import json
+                return json.loads(v_trimmed)
+
+            return [origin.strip() for origin in v_trimmed.split(",") if origin.strip()]
+        return v
 
     model_config = SettingsConfigDict(env_file=os.getenv("ENV_FILE"), env_file_encoding="utf-8", extra="ignore")
 
