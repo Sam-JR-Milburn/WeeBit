@@ -3,47 +3,11 @@ from aiocache import BaseCache
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from weebit.config import settings
+from weebit.exceptions import InvalidUrlProblem, LinkNotFoundProblem, CollisionLimitProblem
+
 from weebit.modules.links import schemas, models
 from weebit.modules.links.processing.pipeline import normalise_url
 from weebit.modules.links.processing.encoding import url_to_int256, encode_base62, SHORT_CODE_DEFAULT_LENGTH
-
-# Generic link parsing error.
-class LinkServiceError(Exception):
-    pass
-
-'''
-# For links pointing at the service itself.
-# Requires pre-image/hash collision - infeasible even on interstellar timelines.
-class SelfReferentialLinkError(Exception):
-    pass
-'''
-
-class InvalidUrlError(LinkServiceError):
-    pass
-
-# For checking URL validity
-#from pydantic import HttpUrl, TypeAdapter, ValidationError
-#_url_adapter = TypeAdapter(HttpUrl)
-
-'''
-def parse_and_validate_url(url: str) -> HttpUrl:
-    """
-    Args:
-        url: Raw URL string.
-    Returns:
-        HttpUrl: An HttpUrl object, if the URL has a valid scheme.
-    Raises:
-        ValidationError: If the URL has an invalid scheme.
-    """
-    if not isinstance(url, str):
-        raise InvalidUrlError("URL is not a string")
-
-    try:
-        return _url_adapter.validate_python(url)
-    except ValidationError as vErr:
-        raise InvalidUrlError(f"URL has invalid format/non-HTTP scheme: {vErr}")
-'''
 
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
@@ -63,11 +27,10 @@ async def get_or_create_link(
     """
 
     # Ingest URL, validate, normalise
-    #url = parse_and_validate_url(str(payload.url))
     try:
         normalised_url = normalise_url(str(payload.url))
     except Exception as err:
-        raise LinkServiceError(f"Parsing failed: {err}")
+        raise InvalidUrlProblem(detail=f"Parsing failed: {err}")
 
     # Convert to base62 short referrer code
     encoded: str = encode_base62(url_to_int256(normalised_url))
@@ -113,8 +76,7 @@ async def get_or_create_link(
             await cache.set(key=cache_src_key, value=normalised_url, ttl=DEFAULT_CACHE_HIT_TTL)
             return link_obj, False
 
-    raise LinkServiceError("Short Code collision limit reached") # Not expected to reach this in quadrillions of tries
-
+    raise CollisionLimitProblem() # Not expected to reach this in quadrillions of tries
 
 async def redirect_with_src(
         short_ref_code: str,
@@ -150,5 +112,5 @@ async def redirect_with_src(
     link_obj: models.Link | None = result.scalar_one_or_none()
 
     if link_obj is None:
-        raise LinkServiceError
+        raise LinkNotFoundProblem(short_ref_code=short_ref_code)
     return link_obj

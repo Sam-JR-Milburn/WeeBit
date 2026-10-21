@@ -43,34 +43,21 @@ async def create_link(
         HTTPException: If the request against the service fails to create or grab a short link.
     """
 
-    try:
-        link_object, created = await service.get_or_create_link(db, cache, payload)
+    link_object, created = await service.get_or_create_link(db, cache, payload)
 
-        if created:
-            response.status_code = status.HTTP_201_CREATED
-            response.headers["Location"] = f"/{link_object.short_ref_code}"
-        else:
-            response.status_code = status.HTTP_200_OK
-        return link_object
-
-    except service.InvalidUrlError as err:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(err)
-        )
-    except service.LinkServiceError as err:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(err)
-        )
-
+    if created:
+        response.status_code = status.HTTP_201_CREATED
+        response.headers["Location"] = f"/{link_object.short_ref_code}"
+    else:
+        response.status_code = status.HTTP_200_OK
+    return link_object
 
 @redirect_router.get(
     path="/{short_referrer_code}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     responses={
         307: { "description": "Redirect to the stored URL if the SRC is valid." },
-        404: { "description": "Yield an error if the SRC is not valid." }
+        404: { "description": "Yield an error if the supplied SRC doesn't exist." }
     },
 )
 async def redirect(
@@ -89,11 +76,8 @@ async def redirect(
         HTTPException: If the SRC doesn't exist in the database.
     """
 
-    try:
-        link_object = await service.redirect_with_src(short_referrer_code, db, cache)
-        response = RedirectResponse(url=str(link_object.normalised_url))
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    link_object = await service.redirect_with_src(short_referrer_code, db, cache)
+    response = RedirectResponse(url=str(link_object.normalised_url))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 
-        return response
-    except service.LinkServiceError as err:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return response

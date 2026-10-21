@@ -32,6 +32,7 @@ frontend-prod:
 [parallel]
 dev: backend-dev frontend-dev
 
+[parallel]
 prod: backend-prod frontend-prod
     
 # Shutdown containers
