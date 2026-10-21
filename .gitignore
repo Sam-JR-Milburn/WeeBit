@@ -3,5 +3,10 @@
 
 # Ignore all environment files, dev exception
 *.env*
-
 !dev.env
+
+# Python bytecode files
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
