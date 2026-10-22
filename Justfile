@@ -11,9 +11,12 @@ db-migrate env_file=".env":
 backend-prod: db-up (db-migrate ".env")
     ENV_FILE=.env uv run uvicorn weebit.main:app --reload --port 8080
 
-# Run the NextJS frontend. # 22/10/2026: Yes I'll fix the 'dev' part.
-frontend-prod:
-    cd frontend && npm run dev 
+ensure-frontend-is-built:
+    @test -d frontend/.next || (echo "Frontend build not found. Building Next.js..." && cd frontend && npm run build)
+
+# Run the NextJS frontend.
+frontend-prod: ensure-frontend-is-built
+    cd frontend && npm run start
 
 # Run the app system, await service startup and DB migrations
 [parallel]
@@ -25,3 +28,4 @@ down:
 
 reset:
     docker compose down -v
+    rm -rf frontend/.next
