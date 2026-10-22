@@ -10,7 +10,7 @@ from alembic import context
 
 # SQLAlchemy Base and Models
 from weebit.database import Base
-from weebit.modules.links.models import Link # noqa: F401
+from weebit.modules.links.models import Link, Analytic # noqa: F401
 
 # Setup Alembic config object and logging
 config = context.config

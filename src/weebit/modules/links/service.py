@@ -114,7 +114,7 @@ async def get_or_create_link(
 
         # If it exists, we've found a collision.
         elif link_obj.normalised_url == normalised_url:
-            
+
             # Send analytic task to analytics worker.
             background_tasks.add_task(
                 background_log_task,
