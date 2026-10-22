@@ -3,15 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware import Middleware
 
-from weebit.exceptions import ProblemException
+from weebit.modules.errors.registry import error_router
 from weebit.modules.links.routes import api_router, redirect_router
+
+from weebit.exceptions import ProblemException
 from weebit.config import settings
 from weebit.modules.links.schemas import ProblemDetailResponse
 
 # Catch exceptions, reformat
 def register_problem_handlers(app: FastAPI):
     @app.exception_handler(ProblemException)
-    async def problem_exception_handler(exc: ProblemException):
+    async def problem_exception_handler(request: Request, exc: ProblemException):
         return JSONResponse(
             status_code=exc.status_code,
             content=ProblemDetailResponse(
@@ -40,7 +42,9 @@ app = FastAPI(
 )
 
 register_problem_handlers(app)
+# Order is important
 app.include_router(api_router)
+app.include_router(error_router) # /errors* before /{short_ref_code}
 app.include_router(redirect_router)
 
 @app.get("/health")
