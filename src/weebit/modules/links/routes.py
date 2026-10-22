@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Response, HTTPException, status
+from fastapi import APIRouter, Depends, Response, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 
-api_router = APIRouter(prefix="/api/link", tags=["Links API"])
+from weebit.config import Settings, settings
+
+api_router = APIRouter(prefix="/api/links", tags=["Links API"])
 redirect_router = APIRouter(tags=["Short code redirect"])
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,16 +19,51 @@ from weebit.modules.links import schemas, service, models
     response_model=schemas.LinkResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
-        200: { "description": "If a short referrer code already exists for the link." },
-        201: { "description": "If a new short referrer code link has been created." },
-        400: { "description": "If there's been a general error in handling the link." },
-        422: { "description": "If the link is non-HTTP (plaintext, 'javascript:', 'ftp://', ...) or self-referential." },
+        status.HTTP_200_OK: {
+            "description": "If a short referrer code already exists for the link.",
+            "content": {
+                "application/json": {
+                    "schema": schemas.LinkResponse.model_json_schema()
+                }
+            }
+        },
+        status.HTTP_201_CREATED: {
+            "description": "If a new short referrer code link has been created.",
+            "content": {
+                "application/json": {
+                    "schema": schemas.LinkResponse.model_json_schema()
+                }
+            },
+            "headers": {
+                "Location": {
+                    "description": "Path to the newly created short link resource.",
+                    "schema": { "type": "string", "example": "/BvIe1DV" },
+                }
+            },
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "If there's been a general error in handling the link.",
+            "content": {
+                "application/problem+json": {
+                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "If the link is non-HTTP (plaintext, 'javascript:', 'ftp://', ...) or self-referential.",
+            "content": {
+                "application/problem+json": {
+                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
+        },
     },
     summary="Create a new short referrer link",
 )
 async def create_link(
     payload: schemas.LinkCreate,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     cache: BaseCache = Depends(get_redis)
 ) -> models.Link:
@@ -34,16 +71,15 @@ async def create_link(
     Args:
         payload: The link submission object.
         response: Injected response object.
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
 
     Returns:
         A link object that is serialised to a LinkResponse DTO by partial projection.
-    Raises:
-        HTTPException: If the request against the service fails to create or grab a short link.
     """
 
-    link_object, created = await service.get_or_create_link(db, cache, payload)
+    link_object, created = await service.get_or_create_link(background_tasks, db, cache, payload)
 
     if created:
         response.status_code = status.HTTP_201_CREATED
@@ -56,27 +92,55 @@ async def create_link(
     path="/{short_referrer_code}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     responses={
-        307: { "description": "Redirect to the stored URL if the SRC is valid." },
-        404: { "description": "Yield an error if the supplied SRC doesn't exist." }
+        status.HTTP_307_TEMPORARY_REDIRECT: {
+            "description": "Redirect to the stored URL if the SRC is valid.",
+            "headers": {
+                "Location": {
+                    "description": "The stored URL grabbed from the short code referral.",
+                    "schema": { "type": "string", "format": "uri", "example": f"{settings.base_url}/BvIe1DV" },
+                },
+                "Cache-Control": {
+                    "description": "Prevents intermediary caching of the short code redirect.",
+                    "schema": { "type": "string", "example": "no-cache, no-store, must-revalidate" },
+                },
+            },
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Yield an error if the supplied SRC doesn't exist.",
+            "content": {
+                "application/problem+json": {
+                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "422 here is an artifact of the FastAPI route param signature. If it did fire, it would have valid shape however, due to exception catching.",
+            "content": {
+                "application/problem+json": {
+                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
+        },
     },
+    summary="Redirect to a full URL from a short referrer code"
 )
 async def redirect(
         short_referrer_code: str,
+        background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
         cache: BaseCache = Depends(get_redis)
 ) -> RedirectResponse:
     """Ingests the short referrer code from the route and redirects if valid.
     Args:
         short_referrer_code:
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
     Returns:
         URL redirection (on valid route input)
-    Raises:
-        HTTPException: If the SRC doesn't exist in the database.
     """
 
-    link_object = await service.redirect_with_src(short_referrer_code, db, cache)
+    link_object = await service.redirect_with_src(short_referrer_code, background_tasks, db, cache)
     response = RedirectResponse(url=str(link_object.normalised_url))
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 
