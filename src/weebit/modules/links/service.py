@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 from aiocache import BaseCache
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,7 +8,7 @@ from weebit.exceptions import InvalidUrlProblem, LinkNotFoundProblem, CollisionL
 
 from weebit.modules.links import schemas, models
 from weebit.modules.links.processing.pipeline import normalise_url
-from weebit.modules.links.processing.encoding import url_to_int256, encode_base62, SHORT_CODE_DEFAULT_LENGTH
+from weebit.modules.links.processing.encoding import url_to_int256, encode_base62, SHORT_CODE_DEFAULT_LENGTH, SHORT_CODE_MAX_LENGTH
 
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
@@ -22,6 +22,14 @@ class CachedLink(BaseModel):
     def __str__(self):
         """Serialise for caching."""
         return self.model_dump_json()
+    @classmethod
+    def from_cache_safe(cls, raw_data: str | None) -> Optional["CachedLink"]:
+        if not raw_data:
+            return None
+        try:
+            return cls.model_validate_json(raw_data)
+        except (ValueError, TypeError):
+            return None
 
 # Background helper for analytics
 from weebit.database import AsyncSessionLocal
@@ -67,14 +75,15 @@ async def get_or_create_link(
     # Convert to base62 short referrer code
     encoded: str = encode_base62(url_to_int256(normalised_url))
 
-    # Process through collision loop
-    for length in range(SHORT_CODE_DEFAULT_LENGTH, SHORT_CODE_DEFAULT_LENGTH + 3):
+    # Process through collision loop (7-10)
+    for length in range(SHORT_CODE_DEFAULT_LENGTH, SHORT_CODE_MAX_LENGTH):
         short_ref_code = encoded[:length]
         cache_src_key = f"code:{short_ref_code}"
 
         # Check cache to check if it's available
         cached_payload_raw: str | None = await cache.get(key=cache_src_key)
-        cached_payload: CachedLink | None = CachedLink(**json.loads(cached_payload_raw)) if cached_payload_raw else None
+        cached_payload: CachedLink | None = CachedLink.from_cache_safe(cached_payload_raw)
+
         if cached_payload:
             if cached_payload.url == normalised_url:
 
@@ -119,8 +128,8 @@ async def get_or_create_link(
 
             # Store in the cache for redirects
             cache_payload = str(CachedLink(id=new_link_obj.id, url=new_link_obj.normalised_url))
-
             await cache.set(key=cache_src_key, value=cache_payload, ttl=DEFAULT_CACHE_CREATE_TTL)
+
             return new_link_obj, True
 
         # If it exists, we've found a collision.
@@ -159,10 +168,14 @@ async def redirect_with_src(
         A short code/link pair
     """
 
+    # Validate the SRC defensively.
+    if not short_ref_code or not (SHORT_CODE_DEFAULT_LENGTH <= len(short_ref_code) <= SHORT_CODE_MAX_LENGTH):
+        raise LinkNotFoundProblem(short_ref_code=short_ref_code)
+
     # Check cache
     cache_src_key = f"code:{short_ref_code}"
     cached_payload_raw: str | None = await cache.get(key=cache_src_key)
-    cached_payload: CachedLink | None = CachedLink(**json.loads(cached_payload_raw)) if cached_payload_raw else None
+    cached_payload: CachedLink | None = CachedLink.from_cache_safe(cached_payload_raw)
     if cached_payload:
         try:
             ttl = await cache.ttl(key=cache_src_key)

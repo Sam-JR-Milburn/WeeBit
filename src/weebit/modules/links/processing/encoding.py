@@ -13,6 +13,7 @@ def url_to_int256(normalised_url: str) -> int:
     return int.from_bytes(digest, byteorder="big")
 
 SHORT_CODE_DEFAULT_LENGTH = 7
+SHORT_CODE_MAX_LENGTH = SHORT_CODE_DEFAULT_LENGTH + 3
 FULL_BASE62_LENGTH = 43 # 256-bit Base62 max-length.
 def encode_base62(num: int, min_length: int = FULL_BASE62_LENGTH) -> str:
     """Encodes a non-negative integer into a Base62 alphanumeric string.
