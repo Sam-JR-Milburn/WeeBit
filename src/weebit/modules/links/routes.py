@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, HTTPException, status
+from fastapi import APIRouter, Depends, Response, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 
 api_router = APIRouter(prefix="/api/link", tags=["Links API"])
@@ -27,6 +27,7 @@ from weebit.modules.links import schemas, service, models
 async def create_link(
     payload: schemas.LinkCreate,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     cache: BaseCache = Depends(get_redis)
 ) -> models.Link:
@@ -34,16 +35,15 @@ async def create_link(
     Args:
         payload: The link submission object.
         response: Injected response object.
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
 
     Returns:
         A link object that is serialised to a LinkResponse DTO by partial projection.
-    Raises:
-        HTTPException: If the request against the service fails to create or grab a short link.
     """
 
-    link_object, created = await service.get_or_create_link(db, cache, payload)
+    link_object, created = await service.get_or_create_link(background_tasks, db, cache, payload)
 
     if created:
         response.status_code = status.HTTP_201_CREATED
@@ -62,21 +62,21 @@ async def create_link(
 )
 async def redirect(
         short_referrer_code: str,
+        background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
         cache: BaseCache = Depends(get_redis)
 ) -> RedirectResponse:
     """Ingests the short referrer code from the route and redirects if valid.
     Args:
         short_referrer_code:
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
     Returns:
         URL redirection (on valid route input)
-    Raises:
-        HTTPException: If the SRC doesn't exist in the database.
     """
 
-    link_object = await service.redirect_with_src(short_referrer_code, db, cache)
+    link_object = await service.redirect_with_src(short_referrer_code, background_tasks, db, cache)
     response = RedirectResponse(url=str(link_object.normalised_url))
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 

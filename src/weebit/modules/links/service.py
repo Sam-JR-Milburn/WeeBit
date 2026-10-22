@@ -2,6 +2,7 @@ from typing import Tuple
 from aiocache import BaseCache
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from fastapi import BackgroundTasks
 
 from weebit.exceptions import InvalidUrlProblem, LinkNotFoundProblem, CollisionLimitProblem
 
@@ -12,6 +13,7 @@ from weebit.modules.links.processing.encoding import url_to_int256, encode_base6
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
 
+# Define the cache data structure
 from pydantic import BaseModel
 import json
 class CachedLink(BaseModel):
@@ -21,13 +23,25 @@ class CachedLink(BaseModel):
         """Serialise for caching."""
         return self.model_dump_json()
 
+# Background helper for analytics
+from weebit.database import AsyncSessionLocal
+async def background_log_task(link_id: int, event_type: models.LinkEventType):
+    async with AsyncSessionLocal() as session:
+        analytic_event = models.Analytic(
+            link_id=link_id, event_type=event_type
+        )
+        session.add(analytic_event)
+        await session.commit()
+
 async def get_or_create_link(
+        background_tasks: BackgroundTasks,
         db: AsyncSession,
         cache: BaseCache,
         payload: schemas.LinkCreate
 ) -> Tuple[models.Link, bool]:
     """Creates a link/short ref code pair or retrieves it if it exists.
     Args:
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
         payload: Link submission.
@@ -55,13 +69,12 @@ async def get_or_create_link(
         if cached_payload:
             if cached_payload.url == normalised_url:
 
-                # Need to add an analytic event, but need to determine the link ID.
-                analytic_event = models.Analytic(
+                # Send analytic task to analytics worker.
+                background_tasks.add_task(
+                    background_log_task,
                     link_id=cached_payload.id,
                     event_type=models.LinkEventType.CREATE
                 )
-                db.add(analytic_event)
-                await db.commit()
 
                 # Cache hit - refresh TTL, return
                 await cache.set(cache_src_key, str(cached_payload), ttl=DEFAULT_CACHE_HIT_TTL)
@@ -83,18 +96,15 @@ async def get_or_create_link(
                 normalised_url=normalised_url
             )
             db.add(new_link_obj)
-            await db.flush()
-
-            # Record analytic event for creation
-            analytic_event = models.Analytic(
-                link_id=new_link_obj.id, # Connects the flushed link obj automatically
-                event_type=models.LinkEventType.CREATE
-            )
-            db.add(analytic_event)
-
             await db.commit()
             await db.refresh(new_link_obj)
-            await db.refresh(analytic_event)
+
+            # Send analytic task to analytics worker.
+            background_tasks.add_task(
+                background_log_task,
+                link_id=new_link_obj.id,
+                event_type=models.LinkEventType.CREATE
+            )
 
             # Store in the cache for redirects
             cache_payload = str(CachedLink(id=new_link_obj.id, url=new_link_obj.normalised_url))
@@ -104,6 +114,14 @@ async def get_or_create_link(
 
         # If it exists, we've found a collision.
         elif link_obj.normalised_url == normalised_url:
+            
+            # Send analytic task to analytics worker.
+            background_tasks.add_task(
+                background_log_task,
+                link_id=link_obj.id,
+                event_type=models.LinkEventType.CREATE
+            )
+
             cache_payload = str(CachedLink(id=link_obj.id, url=link_obj.normalised_url))
             await cache.set(key=cache_src_key, value=cache_payload, ttl=DEFAULT_CACHE_HIT_TTL)
 
@@ -113,12 +131,14 @@ async def get_or_create_link(
 
 async def redirect_with_src(
         short_ref_code: str,
+        background_tasks: BackgroundTasks,
         db: AsyncSession,
         cache: BaseCache
 ) -> models.Link:
     """Find and return url data from a short code.
     Args:
         short_ref_code: A short string for redirection
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
     Returns:
@@ -135,12 +155,12 @@ async def redirect_with_src(
         except (AttributeError, TypeError):
             ttl = 0 # Fallback if cache backend doesn't support TTL lookup
 
-        analytic_event = models.Analytic(
+        # Send analytic task to analytics worker.
+        background_tasks.add_task(
+            background_log_task,
             link_id=cached_payload.id,
             event_type=models.LinkEventType.REDIRECT
         )
-        db.add(analytic_event)
-        await db.commit()
 
         # Set the TTL to be 5 mins if and only if the TTL is less.
         if ttl is None or ttl < DEFAULT_CACHE_HIT_TTL:
@@ -155,13 +175,11 @@ async def redirect_with_src(
     if link_obj is None:
         raise LinkNotFoundProblem(short_ref_code=short_ref_code)
 
-    # Record analytic event for access
-    analytic_event = models.Analytic(
+    # Send analytic task to analytics worker.
+    background_tasks.add_task(
+        background_log_task,
         link_id=link_obj.id,
         event_type=models.LinkEventType.REDIRECT
     )
-    db.add(analytic_event)
-    await db.commit()
-    await db.refresh(analytic_event)
 
     return link_obj
