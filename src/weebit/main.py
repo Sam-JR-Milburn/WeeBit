@@ -11,11 +11,11 @@ from weebit.modules.links.schemas import ProblemDetailResponse
 # Catch exceptions, reformat
 def register_problem_handlers(app: FastAPI):
     @app.exception_handler(ProblemException)
-    async def problem_exception_handler(request: Request, exc: ProblemException):
+    async def problem_exception_handler(exc: ProblemException):
         return JSONResponse(
             status_code=exc.status_code,
             content=ProblemDetailResponse(
-                type=f"{settings.base_url}/{exc.type_uri}",
+                type=f"{settings.base_url}{exc.type_uri}",
                 title=exc.title,
                 status=exc.status_code,
                 detail=exc.detail,
