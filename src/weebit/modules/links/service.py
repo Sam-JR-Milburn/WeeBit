@@ -25,23 +25,32 @@ class CachedLink(BaseModel):
 
 # Background helper for analytics
 from weebit.database import AsyncSessionLocal
-async def background_log_task(link_id: int, event_type: models.LinkEventType):
+async def background_log_task(link_id: int, event_type: models.LinkEventType, browser_fingerprint: str | None = None):
+
+    # Do some validation on the supplied length
+    valid_fingerprint = None
+    if browser_fingerprint and len(browser_fingerprint) == 64:
+        valid_fingerprint = browser_fingerprint
+
     async with AsyncSessionLocal() as session:
         analytic_event = models.Analytic(
-            link_id=link_id, event_type=event_type
+            link_id=link_id, event_type=event_type,
+            browser_fingerprint=valid_fingerprint
         )
         session.add(analytic_event)
         await session.commit()
 
 async def get_or_create_link(
+        payload: schemas.LinkCreate,
+        browser_fingerprint: str | None,
         background_tasks: BackgroundTasks,
         db: AsyncSession,
         cache: BaseCache,
-        payload: schemas.LinkCreate
 ) -> Tuple[models.Link, bool]:
     """Creates a link/short ref code pair or retrieves it if it exists.
     Args:
         background_tasks: Injected background task object.
+        browser_fingerprint: string (or None, if not captured) of the browser's unique fingerprint.
         db: Injected database session.
         cache: Injected cache session.
         payload: Link submission.
@@ -73,7 +82,8 @@ async def get_or_create_link(
                 background_tasks.add_task(
                     background_log_task,
                     link_id=cached_payload.id,
-                    event_type=models.LinkEventType.CREATE
+                    event_type=models.LinkEventType.CREATE,
+                    browser_fingerprint=browser_fingerprint,
                 )
 
                 # Cache hit - refresh TTL, return
@@ -103,7 +113,8 @@ async def get_or_create_link(
             background_tasks.add_task(
                 background_log_task,
                 link_id=new_link_obj.id,
-                event_type=models.LinkEventType.CREATE
+                event_type=models.LinkEventType.CREATE,
+                browser_fingerprint=browser_fingerprint,
             )
 
             # Store in the cache for redirects
@@ -119,7 +130,8 @@ async def get_or_create_link(
             background_tasks.add_task(
                 background_log_task,
                 link_id=link_obj.id,
-                event_type=models.LinkEventType.CREATE
+                event_type=models.LinkEventType.CREATE,
+                browser_fingerprint=browser_fingerprint,
             )
 
             cache_payload = str(CachedLink(id=link_obj.id, url=link_obj.normalised_url))
@@ -131,6 +143,7 @@ async def get_or_create_link(
 
 async def redirect_with_src(
         short_ref_code: str,
+        browser_fingerprint: str | None,
         background_tasks: BackgroundTasks,
         db: AsyncSession,
         cache: BaseCache
@@ -138,6 +151,7 @@ async def redirect_with_src(
     """Find and return url data from a short code.
     Args:
         short_ref_code: A short string for redirection
+        browser_fingerprint: string (or None, if not captured) of the browser's unique fingerprint.
         background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
@@ -159,7 +173,8 @@ async def redirect_with_src(
         background_tasks.add_task(
             background_log_task,
             link_id=cached_payload.id,
-            event_type=models.LinkEventType.REDIRECT
+            event_type=models.LinkEventType.REDIRECT,
+            browser_fingerprint=browser_fingerprint,
         )
 
         # Set the TTL to be 5 mins if and only if the TTL is less.
@@ -179,7 +194,8 @@ async def redirect_with_src(
     background_tasks.add_task(
         background_log_task,
         link_id=link_obj.id,
-        event_type=models.LinkEventType.REDIRECT
+        event_type=models.LinkEventType.REDIRECT,
+        browser_fingerprint=browser_fingerprint,
     )
 
     return link_obj
