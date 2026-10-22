@@ -21,6 +21,7 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "dotenv>=0.9.9",
     "aiocache[redis]>=0.12.3",
+    "starlette>=1.6.0",
 ]
 
 # Configure hatchling to find source code in src/weebit

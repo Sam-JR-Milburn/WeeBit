@@ -22,7 +22,7 @@ export const LinkApi = {
      * @param payload the URL interface
      */
     async createLink(payload: CreateLinkPayload): Promise<LinkResponse> {
-        const response = await fetch("/api/link", {
+        const response = await fetch("/api/links", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
