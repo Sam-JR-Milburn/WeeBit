@@ -68,5 +68,5 @@ class Analytic(Base):
     link: Mapped["Link"] = relationship(back_populates="analytics")
 
     __table_args__ = (
-        Index("ix_analytics_src_timestamp", "link_id", "timestamp")
+        Index("ix_analytics_src_timestamp", "link_id", "timestamp"),
     )

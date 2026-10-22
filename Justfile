@@ -1,6 +1,6 @@
 set dotenv-load := true
 
-db-up: init-env
+db-up:
     docker compose up -d --wait
 
 # Make schema changes

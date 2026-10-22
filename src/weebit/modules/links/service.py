@@ -12,6 +12,15 @@ from weebit.modules.links.processing.encoding import url_to_int256, encode_base6
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
 
+from pydantic import BaseModel
+import json
+class CachedLink(BaseModel):
+    id: int
+    url: str
+    def __str__(self):
+        """Serialise for caching."""
+        return self.model_dump_json()
+
 async def get_or_create_link(
         db: AsyncSession,
         cache: BaseCache,
@@ -41,11 +50,21 @@ async def get_or_create_link(
         cache_src_key = f"code:{short_ref_code}"
 
         # Check cache to check if it's available
-        cached_url: str | None = await cache.get(key=cache_src_key)
-        if cached_url:
-            if cached_url == normalised_url:
+        cached_payload_raw: str | None = await cache.get(key=cache_src_key)
+        cached_payload: CachedLink | None = CachedLink(**json.loads(cached_payload_raw)) if cached_payload_raw else None
+        if cached_payload:
+            if cached_payload.url == normalised_url:
+
+                # Need to add an analytic event, but need to determine the link ID.
+                analytic_event = models.Analytic(
+                    link_id=cached_payload.id,
+                    event_type=models.LinkEventType.CREATE
+                )
+                db.add(analytic_event)
+                await db.commit()
+
                 # Cache hit - refresh TTL, return
-                await cache.set(cache_src_key, normalised_url, ttl=DEFAULT_CACHE_HIT_TTL)
+                await cache.set(cache_src_key, str(cached_payload), ttl=DEFAULT_CACHE_HIT_TTL)
                 # This is without the models.Link.id value, but it's not needed in the response DTO.
                 return models.Link(short_ref_code=short_ref_code, normalised_url=normalised_url), False
             else:
@@ -64,16 +83,30 @@ async def get_or_create_link(
                 normalised_url=normalised_url
             )
             db.add(new_link_obj)
+            await db.flush()
+
+            # Record analytic event for creation
+            analytic_event = models.Analytic(
+                link_id=new_link_obj.id, # Connects the flushed link obj automatically
+                event_type=models.LinkEventType.CREATE
+            )
+            db.add(analytic_event)
+
             await db.commit()
             await db.refresh(new_link_obj)
+            await db.refresh(analytic_event)
 
             # Store in the cache for redirects
-            await cache.set(key=cache_src_key, value=normalised_url, ttl=DEFAULT_CACHE_CREATE_TTL)
+            cache_payload = str(CachedLink(id=new_link_obj.id, url=new_link_obj.normalised_url))
+
+            await cache.set(key=cache_src_key, value=cache_payload, ttl=DEFAULT_CACHE_CREATE_TTL)
             return new_link_obj, True
 
         # If it exists, we've found a collision.
         elif link_obj.normalised_url == normalised_url:
-            await cache.set(key=cache_src_key, value=normalised_url, ttl=DEFAULT_CACHE_HIT_TTL)
+            cache_payload = str(CachedLink(id=link_obj.id, url=link_obj.normalised_url))
+            await cache.set(key=cache_src_key, value=cache_payload, ttl=DEFAULT_CACHE_HIT_TTL)
+
             return link_obj, False
 
     raise CollisionLimitProblem() # Not expected to reach this in quadrillions of tries
@@ -94,17 +127,25 @@ async def redirect_with_src(
 
     # Check cache
     cache_src_key = f"code:{short_ref_code}"
-    cached_url: str | None = await cache.get(key=cache_src_key)
-    if cached_url:
+    cached_payload_raw: str | None = await cache.get(key=cache_src_key)
+    cached_payload: CachedLink | None = CachedLink(**json.loads(cached_payload_raw)) if cached_payload_raw else None
+    if cached_payload:
         try:
             ttl = await cache.ttl(key=cache_src_key)
         except (AttributeError, TypeError):
             ttl = 0 # Fallback if cache backend doesn't support TTL lookup
 
+        analytic_event = models.Analytic(
+            link_id=cached_payload.id,
+            event_type=models.LinkEventType.REDIRECT
+        )
+        db.add(analytic_event)
+        await db.commit()
+
         # Set the TTL to be 5 mins if and only if the TTL is less.
         if ttl is None or ttl < DEFAULT_CACHE_HIT_TTL:
-            await cache.set(cache_src_key, cached_url, ttl=DEFAULT_CACHE_HIT_TTL)
-        return models.Link(short_ref_code=short_ref_code, normalised_url=cached_url)
+            await cache.set(cache_src_key, str(cached_payload), ttl=DEFAULT_CACHE_HIT_TTL)
+        return models.Link(short_ref_code=short_ref_code, normalised_url=cached_payload.url)
 
     # Check db
     query = select(models.Link).where(models.Link.short_ref_code == short_ref_code)
@@ -113,4 +154,14 @@ async def redirect_with_src(
 
     if link_obj is None:
         raise LinkNotFoundProblem(short_ref_code=short_ref_code)
+
+    # Record analytic event for access
+    analytic_event = models.Analytic(
+        link_id=link_obj.id,
+        event_type=models.LinkEventType.REDIRECT
+    )
+    db.add(analytic_event)
+    await db.commit()
+    await db.refresh(analytic_event)
+
     return link_obj
