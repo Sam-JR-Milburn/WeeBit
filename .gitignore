@@ -10,3 +10,6 @@
 *.pyc
 *.pyo
 *.pyd
+
+# Testing artifacts
+seed_analytics.sh

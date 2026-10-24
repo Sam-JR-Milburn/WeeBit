@@ -1,6 +1,7 @@
 import hashlib
 
-BASE62_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+BASE62_ALPHANUMERIC = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+VALID_CHARS = set(BASE62_ALPHANUMERIC)
 
 def url_to_int256(normalised_url: str) -> int:
     """Produces a 256-bit hash of the normalised URL string.
@@ -13,6 +14,7 @@ def url_to_int256(normalised_url: str) -> int:
     return int.from_bytes(digest, byteorder="big")
 
 SHORT_CODE_DEFAULT_LENGTH = 7
+SHORT_CODE_MAX_LENGTH = SHORT_CODE_DEFAULT_LENGTH + 3
 FULL_BASE62_LENGTH = 43 # 256-bit Base62 max-length.
 def encode_base62(num: int, min_length: int = FULL_BASE62_LENGTH) -> str:
     """Encodes a non-negative integer into a Base62 alphanumeric string.
@@ -24,13 +26,13 @@ def encode_base62(num: int, min_length: int = FULL_BASE62_LENGTH) -> str:
 
     """
     if num == 0:
-        return BASE62_ALPHABET[0].rjust(min_length, BASE62_ALPHABET[0])
+        return BASE62_ALPHANUMERIC[0].rjust(min_length, BASE62_ALPHANUMERIC[0])
     chars = []
-    base = len(BASE62_ALPHABET)
+    base = len(BASE62_ALPHANUMERIC)
 
     while num > 0:
         num, remainder = divmod(num, base)
-        chars.append(BASE62_ALPHABET[remainder])
+        chars.append(BASE62_ALPHANUMERIC[remainder])
 
     encoded = "".join(reversed(chars))
-    return encoded.rjust(min_length, BASE62_ALPHABET[0])
+    return encoded.rjust(min_length, BASE62_ALPHANUMERIC[0])

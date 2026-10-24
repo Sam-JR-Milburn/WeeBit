@@ -1,16 +1,16 @@
 info:
-  name: "Submit link #1"
+  name: "Dangerous #4"
   type: http
-  seq: 1
+  seq: 4
 
 http:
   method: POST
-  url: "{{ServerName}}/api/link"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-
       {
-        "url": "https://en.wikipedia.org/wiki/Zen_of_Python#Principles"
+        "url": "file:///etc/passwd"
       }
   auth: inherit
 

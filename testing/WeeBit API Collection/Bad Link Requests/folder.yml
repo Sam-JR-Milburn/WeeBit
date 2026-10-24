@@ -1,0 +1,7 @@
+info:
+  name: Bad Link Requests
+  type: folder
+  seq: 5
+
+request:
+  auth: inherit

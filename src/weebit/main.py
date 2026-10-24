@@ -1,14 +1,17 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware import Middleware
 
-from weebit.modules.errors.registry import error_router
-from weebit.modules.links.routes import api_router, redirect_router
+from starlette.middleware import Middleware
+from starlette.responses import RedirectResponse
+
+from weebit.modules.analytics.routes import analytics_api_router
+from weebit.modules.errors.routes import error_router
+from weebit.modules.links.routes import links_api_router, links_redirect_router
 
 from weebit.exceptions import ProblemException
 from weebit.config import settings
-from weebit.modules.links.schemas import ProblemDetailResponse
+from weebit.schemas import ProblemDetailResponse
 
 # Catch exceptions, reformat
 def register_problem_handlers(app: FastAPI):
@@ -42,11 +45,18 @@ app = FastAPI(
 )
 
 register_problem_handlers(app)
-# Order is important
-app.include_router(api_router)
-app.include_router(error_router) # /errors* before /{short_ref_code}
-app.include_router(redirect_router)
 
-@app.get("/health")
+# Order is important
+app.include_router(links_api_router)
+app.include_router(analytics_api_router) # /api/analytics
+app.include_router(error_router) # /errors* before /{short_ref_code}
+app.include_router(links_redirect_router)
+
+@app.get("/health", tags=["Health Check Endpoint"])
 async def health_check():
     return { "status": "ok" }
+
+@app.get("/", include_in_schema=False)
+async def root_to_docs():
+    """Send root ('/') requests to /docs"""
+    return RedirectResponse(url="/docs")

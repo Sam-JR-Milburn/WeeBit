@@ -3,3 +3,43 @@
 body {
   font-family: Helvetica, sans-serif;
 }
+
+.marquee-animation {
+  display: inline-block;
+  white-space: nowrap;
+  transform: translateX(0);
+}
+
+.group:hover .marquee-animation {
+  animation: marquee-scroll var(--scroll-duration, 8s) linear infinite;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.expandable-container {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.75s ease-in-out;
+}
+
+.expandable-container.is-open {
+  grid-template-rows: 1fr;
+}
+
+.expandable-content {
+  overflow: hidden;
+}
+
+@font-face {
+  font-family: 'NotoEmoji-Bold';
+  src: url('/fonts/NotoEmoji-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}

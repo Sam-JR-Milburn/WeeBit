@@ -1,16 +1,16 @@
 info:
-  name: "Dangerous #6"
+  name: "Dangerous #5"
   type: http
-  seq: 10
+  seq: 5
 
 http:
   method: POST
-  url: "{{ServerName}}/api/link"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-
       {
-        "url": "ssh://git@github.com/user/repo.git"
+        "url": "mailto:admin@example.com"
       }
   auth: inherit
 

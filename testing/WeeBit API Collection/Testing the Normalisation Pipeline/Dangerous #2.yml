@@ -1,16 +1,16 @@
 info:
-  name: "Dangerous #5"
+  name: "Dangerous #2"
   type: http
-  seq: 9
+  seq: 2
 
 http:
   method: POST
-  url: "{{ServerName}}/api/link"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-
       {
-        "url": "mailto:admin@example.com"
+        "url": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
       }
   auth: inherit
 

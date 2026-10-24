@@ -1,0 +1,7 @@
+info:
+  name: Simple Link Submits and Redirects
+  type: folder
+  seq: 2
+
+request:
+  auth: inherit

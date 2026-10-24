@@ -1,6 +1,6 @@
 name: WeeBit Environment
 color: "#2E8A54"
 variables:
-  - name: ServerName
+  - name: ApiServerName
     value: localhost:8080
     description: ""

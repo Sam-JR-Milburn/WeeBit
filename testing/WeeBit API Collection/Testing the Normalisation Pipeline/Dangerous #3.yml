@@ -1,16 +1,16 @@
 info:
-  name: "Dangerous #4"
+  name: "Dangerous #3"
   type: http
-  seq: 8
+  seq: 3
 
 http:
   method: POST
-  url: "{{ServerName}}/api/link"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-
       {
-        "url": "file:///etc/passwd"
+        "url": "vbscript:msgbox(\"hello\")"
       }
   auth: inherit
 

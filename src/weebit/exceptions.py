@@ -29,8 +29,17 @@ class ProblemException(Exception):
 class InvalidUrlProblem(ProblemException):
     status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
     title: str = "Unprocessable URL"
-    type_uri: str = "/errors/invalid-url"
+    type_uri: str = "/api/errors/invalid-url"
     description: str = "The URL failed validation checks."
+
+    def __init__(self, detail: str):
+        super().__init__(detail=detail)
+
+class InvalidShortCodeProblem(ProblemException):
+    status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
+    title: str = "Unprocessable Short Code"
+    type_uri: str = "/api/errors/invalid-short-code"
+    description: str = "The short referer code was invalid."
 
     def __init__(self, detail: str):
         super().__init__(detail=detail)
@@ -38,7 +47,7 @@ class InvalidUrlProblem(ProblemException):
 class LinkNotFoundProblem(ProblemException):
     status_code: int = status.HTTP_404_NOT_FOUND
     title: str = "Link Not Found"
-    type_uri: str = "/errors/link-not-found"
+    type_uri: str = "/api/errors/link-not-found"
     description: str = "The short referrer code doesn't exist in the database."
 
     def __init__(self, short_ref_code: str):
@@ -47,8 +56,17 @@ class LinkNotFoundProblem(ProblemException):
 class CollisionLimitProblem(ProblemException):
     status_code: int = status.HTTP_400_BAD_REQUEST
     title: str = "Collision Limit Reached"
-    type_uri: str = "/errors/collision-limit"
+    type_uri: str = "/api/errors/collision-limit"
     description: str = "The system exhausted available short codes for this link."
 
     def __init__(self):
         super().__init__(detail="Short code collision limit reached. I am statistically improbable.")
+
+class InvalidDateProblem(ProblemException):
+    status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
+    title: str = "Invalid Date Format"
+    type_uri: str = "/api/errors/invalid-date"
+    description: str = "The date(s) are malformed."
+
+    def __init__(self, detail: str):
+        super().__init__(detail=detail)

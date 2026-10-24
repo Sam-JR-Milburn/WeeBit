@@ -1,0 +1,7 @@
+info:
+  name: Testing the Normalisation Pipeline
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit

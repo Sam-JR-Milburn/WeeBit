@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from weebit import exceptions
 
-error_router = APIRouter(prefix="/errors", tags=["Error Registry"])
+error_router = APIRouter(prefix="/api/errors", tags=["Error Registry API"])
 
 class ErrorMetadata(BaseModel):
     type_uri: str
@@ -13,8 +13,10 @@ class ErrorMetadata(BaseModel):
 # Keep track of all exceptions here for the error documentation registry.
 REGISTERED_EXCEPTIONS = [
     exceptions.InvalidUrlProblem,
+    exceptions.InvalidShortCodeProblem,
     exceptions.LinkNotFoundProblem,
     exceptions.CollisionLimitProblem,
+    exceptions.InvalidDateProblem
 ]
 
 @error_router.get("", response_model=list[ErrorMetadata])
