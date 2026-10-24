@@ -5,4 +5,10 @@ WeeBit is a deterministic, high-performance link shortener application built wit
 
 [Design Document](design.md)
 
-![Screenshot of WeeBit's Main Page](WeeBitScreenshot.png)
+Link Submission Page
+
+![Screenshot of WeeBit's Link Submission/Main Page](WeeBitScreenshot-1.png)
+
+Link Analytics Page
+
+![Screenshot of WeeBit's Link Analytics Page](WeeBitScreenshot-2.png)
