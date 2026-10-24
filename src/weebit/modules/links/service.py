@@ -14,9 +14,10 @@ from weebit.modules.links.processing.encoding import url_to_int256, encode_base6
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
 
+
+
 # Define the cache data structure
 from pydantic import BaseModel
-import json
 class CachedLink(BaseModel):
     id: int
     url: str
@@ -31,6 +32,8 @@ class CachedLink(BaseModel):
             return cls.model_validate_json(raw_data)
         except (ValueError, TypeError):
             return None
+
+
 
 # Background helper for analytics
 from weebit.database import AsyncSessionLocal
@@ -49,6 +52,8 @@ async def background_log_task(link_id: int, event_type: models.LinkEventType, br
         )
         session.add(analytic)
         await session.commit()
+
+
 
 async def get_or_create_link(
         payload: schemas.LinkCreate,
@@ -151,6 +156,8 @@ async def get_or_create_link(
             return link_obj, False
 
     raise CollisionLimitProblem() # Not expected to reach this in quadrillions of tries
+
+
 
 async def redirect_with_src(
         short_ref_code: str,

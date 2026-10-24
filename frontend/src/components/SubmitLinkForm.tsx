@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api";
-import {linkSubmissionSchema} from "@/lib/schemas";
+import { linkSubmissionSchema } from "@/lib/schemas";
 
 export default function SubmitLinkForm() {
     const [submitUrl, setSubmitUrl] = useState<string>("");

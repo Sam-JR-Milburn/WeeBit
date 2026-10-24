@@ -1,23 +1,4 @@
-/**
- *      LINKS
- */
-
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
-
-export interface LinkResponse {
-    short_ref_code: string;
-    normalised_url: string;
-}
-export interface CreateLinkPayload {
-    url: string;
-}
-
-export const getBaseUrl = (): string => {
-    if (typeof window !== 'undefined') { // Client-side fallback
-        return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    }
-    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3080";
-}
 
 /**
  * Load/initialise Fingerprint JS once - promise function to grab it.
@@ -42,6 +23,27 @@ async function getFingerprintJSId(): Promise<string | null> {
         console.warn("Failed to generate browser fingerprint:", error);
         return null;
     }
+}
+
+
+
+/**
+ *      LINKS
+ */
+
+export interface LinkResponse {
+    short_ref_code: string;
+    normalised_url: string;
+}
+export interface CreateLinkPayload {
+    url: string;
+}
+
+export const getBaseUrl = (): string => {
+    if (typeof window !== 'undefined') { // Client-side fallback
+        return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    }
+    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3080";
 }
 
 export const LinksApi = {
@@ -85,21 +87,57 @@ export const LinksApi = {
  *      ANALYTICS
  */
 
-interface LinkAnalyticsParams {
-    from_date?: string;
-    to_date?: string;
+interface GetLinkAnalyticsPayload {
+    short_ref_code: string;
+    from_date?: string | null;
+    to_date?: string | null;
 }
 
-
+interface LinkAnalyticsResponse {
+    short_ref_code: string;
+    from_date?: string | null;
+    to_date: string;
+    creates: Record<string, number>,
+    redirects: Record<string, number>,
+    unique_visitors: Record<string, number>,
+}
 
 export const AnalyticsApi = {
     /**
-     * ----
+     * Get the analytics for a Wee Bit.
+     * @param payload the short reference code, from date and to date.
      */
+    async getAnalytics(payload: GetLinkAnalyticsPayload): Promise<LinkAnalyticsResponse>{
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        }
 
-    // ---
+        const visitorId = await getFingerprintJSId();
+        if (visitorId) {
+            headers["X-Visitor-Id"] = visitorId;
+        }
 
+        // Add to/from dates if applicable.
+        const params = new URLSearchParams();
+        if (payload.from_date) params.append("from_date", payload.from_date);
+        if (payload.to_date) params.append("to_date", payload.to_date);
+        const params_string = params.toString() ? `?${params.toString()}` : "";
+
+        const response = await fetch(`/api/analytics/${payload.short_ref_code}${params_string}`, {
+            method: "GET",
+            headers: headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to fetch analytics. (Status): ${response.status}, ${response.statusText}`);
+        }
+
+        return response.json();
+    }
 }
+
+
 
 /**
  * Object Literal Namespace for API calls

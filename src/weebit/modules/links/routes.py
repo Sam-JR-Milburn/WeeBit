@@ -117,7 +117,7 @@ def generate_server_browser_fingerprint(request: Request) -> str:
     if request.client and request.client.host:
         client_ip = request.client.host
 
-    today_salt = date.today().isoformat() # More resilient to IP address changes
+    today_salt = date.today().isoformat() # More resilient to changed IP addresses (from day-to-day with IP leasing)
 
     raw_signature = f"{client_ip}:{user_agent}:{accept_language}:{accept_encoding}:{today_salt}"
     return hashlib.sha256(raw_signature.encode("UTF-8")).hexdigest()
@@ -131,7 +131,7 @@ def generate_server_browser_fingerprint(request: Request) -> str:
             "headers": {
                 "Location": {
                     "description": "The stored URL grabbed from the short code referral.",
-                    "schema": { "type": "string", "format": "uri", "example": f"{settings.base_url}/BvIe1DV" },
+                    "schema": { "type": "string", "format": "uri", "example": f"{settings.base_url}/1dSgEp3" },
                 },
                 "Cache-Control": {
                     "description": "Prevents intermediary caching of the short code redirect.",

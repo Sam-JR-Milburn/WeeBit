@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
-const API_HOST = process.env.NEXT_PUBLIC_API_HOST || "http://localhost:8080";
+const FRONTEND_HOST = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3080";
+const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   /* config options here */
