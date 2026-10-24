@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { api, type LinkAnalyticsResponse } from "@/lib/api";
+import AnalyticsChart from "@/components/AnalyticsChart";
 
 export default function AnalyticsLookupForm() {
     const [shortRefCode, setShortRefCode] = useState<string>("");
@@ -139,6 +140,8 @@ export default function AnalyticsLookupForm() {
                                 </div>
                             </div>
                         </div>
+
+                        <AnalyticsChart redirects={analyticsData.redirects} />
 
                         {/* Metrics */}
                         <div className="grid grid-cols-3 gap-3">
