@@ -9,3 +9,4 @@ class LinkAnalyticsResponse(BaseModel):
     to_date: date
     creates: Dict[str, int] = Field(..., description="Dictionary of ISO 8601 dates to creation counts")
     redirects: Dict[str, int] = Field(..., description="Dictionary of ISO 8601 dates to redirection counts")
+    unique_visitors: Dict[str, int] = Field(..., description="Dictionary of unique visitor counts")

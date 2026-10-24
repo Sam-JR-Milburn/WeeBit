@@ -1,3 +1,6 @@
+import hashlib
+from datetime import date
+
 from fastapi import APIRouter, Depends, Request, Response, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 
@@ -97,6 +100,28 @@ async def create_link(
 
 
 
+def generate_server_browser_fingerprint(request: Request) -> str:
+    """
+    Args:
+        request: Request object that we can extract identity-correlated information
+    Returns:
+        64-char lower-quality browser fingerprint.
+        Lacks the quality of a client-side JS fingerprint.
+    """
+
+    user_agent =            request.headers.get("user-agent", "")
+    accept_language =       request.headers.get("accept-language", "")
+    accept_encoding =       request.headers.get("accept-encoding", "")
+
+    client_ip = "0.0.0.0"
+    if request.client and request.client.host:
+        client_ip = request.client.host
+
+    today_salt = date.today().isoformat() # More resilient to IP address changes
+
+    raw_signature = f"{client_ip}:{user_agent}:{accept_language}:{accept_encoding}:{today_salt}"
+    return hashlib.sha256(raw_signature.encode("UTF-8")).hexdigest()
+
 @links_redirect_router.get(
     path="/{short_referrer_code}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
@@ -151,9 +176,13 @@ async def redirect(
         URL redirection (on valid route input)
     """
 
+    visitor_id = request.headers.get("X-Visitor-Id")
+    if not visitor_id:
+        visitor_id = generate_server_browser_fingerprint(request)
+
     link_object = await service.redirect_with_src(
         short_ref_code=short_referrer_code,
-        browser_fingerprint=request.headers.get("X-Visitor-Id"),
+        browser_fingerprint=visitor_id, # Can't exist here without an interstitial page
         background_tasks=background_tasks,
         db=db, cache=cache)
     response = RedirectResponse(url=str(link_object.normalised_url))

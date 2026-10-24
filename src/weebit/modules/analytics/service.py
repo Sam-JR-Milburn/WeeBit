@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 
 from weebit.modules.analytics import schemas as analytics_schemas
 from weebit.modules.analytics.schemas import LinkAnalyticsResponse
@@ -42,7 +42,17 @@ async def get_analytics(
         select(
             func.date(links_models.Analytic.timestamp).label("event_date"),
             links_models.Analytic.event_type,
-            func.count().label("count")
+            func.count().label("count"),
+            # Unique visitors by browser_fingerprint
+            func.count(
+                func.distinct(
+                    case(
+                        (links_models.Analytic.event_type == links_models.LinkEventType.REDIRECT,
+                         links_models.Analytic.browser_fingerprint),
+                        else_=None
+                    )
+                )
+            ).label("unique_count")
         )
         .where(
             # Only the link implied by the short code
@@ -66,13 +76,17 @@ async def get_analytics(
     # Populate the response with ISO 8601 formatting
     creates_map = {}
     redirects_map = {}
+    unique_visitors_map = {}
 
-    for event_date, event_type, count in rows:
+    for event_date, event_type, count, unique_visitors_count in rows:
         day_str = event_date.isoformat()
         if event_type == links_models.LinkEventType.CREATE:
             creates_map[day_str] = count
         elif event_type == links_models.LinkEventType.REDIRECT:
             redirects_map[day_str] = count
+
+            # Only doing this for redirects as a create/recreate is a good proxy for unique visitor counts anyway
+            unique_visitors_map[day_str] = unique_visitors_count
 
     return LinkAnalyticsResponse(
         short_ref_code=short_referrer_code,
@@ -80,4 +94,5 @@ async def get_analytics(
         to_date=to_date,
         creates=dict(creates_map),
         redirects=dict(redirects_map),
+        unique_visitors=dict(unique_visitors_map),
     )
