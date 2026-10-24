@@ -26,7 +26,7 @@ analytics_api_router = APIRouter(prefix="/api/analytics", tags=["Link Analytics 
             "description": "Yield an error if the SRC is not valid",
             "content": {
                 "application/problem+json": {
-                    "schemas": main_schemas.ProblemDetailResponse.model_json_schema()
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
         },
@@ -34,7 +34,7 @@ analytics_api_router = APIRouter(prefix="/api/analytics", tags=["Link Analytics 
             "description": "Yield an error if the SRC or the from_date/to_date have invalid form",
             "content": {
                 "application/problem+json": {
-                    "schemas": main_schemas.ProblemDetailResponse.model_json_schema()
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
         }

@@ -52,7 +52,7 @@ app.include_router(analytics_api_router) # /api/analytics
 app.include_router(error_router) # /errors* before /{short_ref_code}
 app.include_router(links_redirect_router)
 
-@app.get("/health")
+@app.get("/health", tags=["Health Check Endpoint"])
 async def health_check():
     return { "status": "ok" }
 

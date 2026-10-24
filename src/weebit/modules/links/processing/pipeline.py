@@ -85,8 +85,8 @@ def normalise_url(
 ) -> str:
     """
     Args:
-        url: the unnormalised url.
-        pipeline: an ordered list of string processing functions
+        url: A raw URL for normalisation.
+        pipeline: An ordered list of URL processing functions.
     Returns:
         A normalised url.
     """

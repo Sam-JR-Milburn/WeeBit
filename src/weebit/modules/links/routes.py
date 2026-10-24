@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from weebit.config import settings
 
 links_api_router = APIRouter(prefix="/api/links", tags=["Links API"])
-links_redirect_router = APIRouter(tags=["Short code redirect"])
+links_redirect_router = APIRouter(tags=["Short Code Redirect"])
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from weebit.database import get_db

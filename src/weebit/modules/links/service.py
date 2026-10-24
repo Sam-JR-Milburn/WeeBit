@@ -73,7 +73,7 @@ async def get_or_create_link(
         A short code/link pair and whether it was created (True) or retrieved (False).
     """
 
-    # Ingest URL, validate, normalise
+    # Ingest URL, validate, normalise.
     try:
         normalised_url = normalise_url(str(payload.url))
     except Exception as err:

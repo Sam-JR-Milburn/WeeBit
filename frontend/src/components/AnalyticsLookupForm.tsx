@@ -9,7 +9,6 @@ export default function AnalyticsLookupForm() {
     const [toDate, setToDate] = useState<string>("");
 
     const [analyticsData, setAnalyticsData] = useState<LinkAnalyticsResponse | null>(null);
-    const [url, setUrl] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +42,6 @@ export default function AnalyticsLookupForm() {
                 to_date: toDate ? toDate : null,
             });
             setAnalyticsData(data);
-            setUrl(`${data.normalised_url}...`);
         } catch (err: unknown) {
             setError((err as Error).message || "Failed to fetch analytics for this code.");
         } finally {
@@ -55,9 +53,6 @@ export default function AnalyticsLookupForm() {
     const sumMetrics = (record: Record<string, number> = {}) => {
         return Object.values(record).reduce((acc, val) => acc + val, 0);
     };
-
-    //const targetUrl = analyticsData?.normalised_url || "";
-    //const isLongUrl = targetUrl.length > 48;
 
     return (
         <div className="w-full max-w-3xl bg-[#112c5a] rounded-2xl p-8 sm:p-10 shadow-2xl flex flex-col gap-6 text-white">
@@ -127,7 +122,6 @@ export default function AnalyticsLookupForm() {
                                 <span className="text-emerald-400 font-bold text-lg block">{analyticsData.short_ref_code}</span>
                             </div>
 
-                            {/* RESOLVED URL with Smart Native Overflow Check */}
                             <div className="w-full sm:w-64 text-left sm:text-right">
                                 <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block mb-1">RESOLVED URL</span>
 
