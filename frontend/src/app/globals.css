@@ -22,3 +22,24 @@ body {
     transform: translateX(-50%);
   }
 }
+
+.expandable-container {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.75s ease-in-out;
+}
+
+.expandable-container.is-open {
+  grid-template-rows: 1fr;
+}
+
+.expandable-content {
+  overflow: hidden;
+}
+
+@font-face {
+  font-family: 'NotoEmoji-Bold';
+  src: url('/fonts/NotoEmoji-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}

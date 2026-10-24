@@ -35,16 +35,16 @@ def normalise_http_scheme(url: str) -> str:
     split_url = urlsplit(url)
 
     scheme: str = str(split_url.scheme or "").lower()
-    host: str = str(split_url.netloc or "").lower()
+    hostname: str = str(split_url.hostname or "").lower()
     port = split_url.port
 
     # Strip default ports.
     if (scheme == "https" and port == 443) or (scheme == "http" and port == 80):
-        netloc = host
+        netloc = hostname
     elif port:
-        netloc = f"{host}:{port}"
+        netloc = f"{hostname}:{port}"
     else:
-        netloc = host
+        netloc = hostname
 
     # Handle username:password, if present
     if "@" in split_url.netloc:

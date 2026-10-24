@@ -1,4 +1,5 @@
 import SubmitLinkForm from "@/components/SubmitLinkForm";
+import DoodleBackground from "@/components/DoodleBackground";
 
 export default function Home() {
   return (

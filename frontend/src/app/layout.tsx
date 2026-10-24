@@ -1,6 +1,7 @@
 import "./globals.css"
 import type { Metadata } from "next";
 import Header from "@/components/Header";
+import DoodleBackground from "@/components/DoodleBackground";
 
 export const metadata: Metadata = {
     title: "WeeBit",
@@ -19,7 +20,9 @@ export default function RootLayout({
             className="antialiased">
             <div className={"h-screen w-screen flex flex-col overflow-hidden text-slate-100"}>
                 <Header />
-                {children}
+                <DoodleBackground>
+                    {children}
+                </DoodleBackground>
             </div>
         </body>
         </html>

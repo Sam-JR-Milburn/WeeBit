@@ -16,7 +16,6 @@ export default function AnalyticsLookupForm() {
     const handleLookup = async (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
-        setAnalyticsData(null);
 
         let trimmedCode = shortRefCode.trim();
         if (!trimmedCode) {
@@ -45,6 +44,7 @@ export default function AnalyticsLookupForm() {
             setAnalyticsData(data);
         } catch (err: unknown) {
             setError((err as Error).message || "Failed to fetch analytics for this code.");
+            setAnalyticsData(null);
         } finally {
             setLoading(false);
         }
@@ -107,72 +107,80 @@ export default function AnalyticsLookupForm() {
             </form>
 
             <div className="w-full">
+                {/* Errors */}
                 {error && (
                     <div className="w-full min-h-[3.5rem] bg-[#141414] border border-[#ffffff] rounded-xl px-4 py-3 flex items-center text-[#b30800] text-sm font-medium">
                         {error}
                     </div>
                 )}
 
-                {analyticsData && !error && (
-                    <div className="w-full bg-[#141414] border border-[#ffffff] rounded-xl p-6 flex flex-col gap-5 text-slate-200 transition">
-
-                        {/* WeeBit + Url Section */}
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                            <div>
-                                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block">Wee Bit</span>
-                                <span className="text-emerald-400 font-bold text-lg block">{analyticsData.short_ref_code}</span>
-                            </div>
-
-                            <div className="w-full sm:w-64 text-left sm:text-right">
-                                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block mb-1">RESOLVED URL</span>
-
-                                <div className="overflow-hidden relative w-full group">
-                                    <div className="truncate group-hover:overflow-visible group-hover:text-clip">
-                                        <span
-                                            className="font-mono text-emerald-400 font-bold text-lg whitespace-nowrap marquee-animation"
-                                            style={{
-                                                '--scroll-duration': `${Math.max(analyticsData.normalised_url.length * 0.08, 4)}s`
-                                            } as React.CSSProperties}
-                                        >
-                                            {analyticsData.normalised_url}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <AnalyticsChart redirects={analyticsData.redirects} />
-
-                        {/* Metrics */}
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
-                                <span className="text-xs text-slate-400 block mb-1">Total Redirects</span>
-                                <span className="text-xl sm:text-2xl font-bold text-white">
-                                    {sumMetrics(analyticsData.redirects)}
-                                </span>
-                            </div>
-                            <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
-                                <span className="text-xs text-slate-400 block mb-1">Unique Visitors</span>
-                                <span className="text-xl sm:text-2xl font-bold text-white">
-                                    {sumMetrics(analyticsData.unique_visitors)}
-                                </span>
-                            </div>
-                            <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
-                                <span className="text-xs text-slate-400 block mb-1">Total Creations</span>
-                                <span className="text-xl sm:text-2xl font-bold text-white">
-                                    {sumMetrics(analyticsData.creates)}
-                                </span>
-                            </div>
-                        </div>
-
-                    </div>
-                )}
-
+                {/* Placeholder */}
                 {!analyticsData && !error && (
                     <div className="w-full h-16 bg-[#141414]/40 border border-dashed border-white/20 rounded-xl px-4 flex items-center justify-center text-slate-400 text-xs sm:text-sm">
                         Detailed statistics and metrics will load here once searched.
                     </div>
                 )}
+
+                <div className={`expandable-container ${analyticsData && !error ? "is-open" : ""}`}>
+                    <div className="expandable-content">
+                        {analyticsData && (
+                            <div className="w-full bg-[#141414] border border-[#ffffff] rounded-xl p-6 flex flex-col gap-5 text-slate-200 pt-6">
+
+                                {/* WeeBit + Url Section */}
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                                    <div>
+                                        <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block">Wee Bit</span>
+                                        <span className="text-emerald-400 font-bold text-lg block font-mono">{analyticsData.short_ref_code}</span>
+                                    </div>
+
+                                    <div className="w-full sm:w-64 text-left sm:text-right">
+                                        <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block mb-1">RESOLVED URL</span>
+
+                                        <div className="overflow-hidden relative w-full group">
+                                            <div className="truncate group-hover:overflow-visible group-hover:text-clip">
+                                                <span
+                                                    className="font-mono text-emerald-400 font-bold text-lg whitespace-nowrap marquee-animation"
+                                                    style={{
+                                                        '--scroll-duration': `${Math.max(analyticsData.normalised_url.length * 0.08, 4)}s`
+                                                    } as React.CSSProperties}
+                                                >
+                                                    {analyticsData.normalised_url}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <AnalyticsChart redirects={analyticsData.redirects} />
+
+                                {/* Metrics */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
+                                        <span className="text-xs text-slate-400 block mb-1">Total Redirects</span>
+                                        <span className="text-xl sm:text-2xl font-bold text-white">
+                                            {sumMetrics(analyticsData.redirects)}
+                                        </span>
+                                    </div>
+                                    <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
+                                        <span className="text-xs text-slate-400 block mb-1">Unique Visitors</span>
+                                        <span className="text-xl sm:text-2xl font-bold text-white">
+                                            {sumMetrics(analyticsData.unique_visitors)}
+                                        </span>
+                                    </div>
+                                    <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
+                                        <span className="text-xs text-slate-400 block mb-1">Total Creations</span>
+                                        <span className="text-xl sm:text-2xl font-bold text-white">
+                                            {sumMetrics(analyticsData.creates)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+
             </div>
 
         </div>
