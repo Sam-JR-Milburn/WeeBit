@@ -159,6 +159,19 @@ async def get_or_create_link(
 
 
 
+# Validate the SRC defensively.
+def validate_short_code(
+        short_ref_code: str
+) -> None:
+    if not short_ref_code:
+        raise LinkNotFoundProblem(short_ref_code=short_ref_code)
+
+    if not (SHORT_CODE_DEFAULT_LENGTH <= len(short_ref_code) <= SHORT_CODE_MAX_LENGTH):
+        raise InvalidShortCodeProblem(detail="Short code has an invalid format.")
+
+    if not (all(char in VALID_CHARS for char in short_ref_code)):
+        raise InvalidShortCodeProblem(detail="Short code has invalid characters.")
+
 async def redirect_with_src(
         short_ref_code: str,
         browser_fingerprint: str | None,
@@ -177,15 +190,7 @@ async def redirect_with_src(
         A short code/link pair
     """
 
-    # Validate the SRC defensively.
-    if not short_ref_code:
-        raise LinkNotFoundProblem(short_ref_code=short_ref_code)
-
-    if not (SHORT_CODE_DEFAULT_LENGTH <= len(short_ref_code) <= SHORT_CODE_MAX_LENGTH):
-        raise InvalidShortCodeProblem(detail="Short code has an invalid format.")
-
-    if not(all(char in VALID_CHARS for char in short_ref_code)):
-        raise InvalidShortCodeProblem(detail="Short code has invalid characters.")
+    validate_short_code(short_ref_code)
 
     # Check cache
     cache_src_key = f"src:{short_ref_code}"

@@ -9,6 +9,7 @@ from weebit.modules.analytics.schemas import LinkAnalyticsResponse
 from weebit.modules.links import models as links_models
 
 from weebit.exceptions import LinkNotFoundProblem
+from weebit.modules.links.service import validate_short_code
 
 async def get_analytics(
     short_referrer_code: str,
@@ -26,12 +27,15 @@ async def get_analytics(
         A LinkAnalyticsResponse object containing statistics for a link/short code pair.
     """
 
-    # Verify the link object exists
-    link_exists_stmt = select(links_models.Link.id).where(links_models.Link.short_ref_code == short_referrer_code)
-    link_id = (await db.execute(link_exists_stmt)).scalar_one_or_none()
+    validate_short_code(short_referrer_code)
 
-    if link_id is None:
+    # Verify the link object exists
+    link_exists_stmt = select(links_models.Link.id, links_models.Link.normalised_url).where(links_models.Link.short_ref_code == short_referrer_code)
+    link_result = (await db.execute(link_exists_stmt)).first()
+
+    if link_result is None:
         raise LinkNotFoundProblem(short_ref_code=short_referrer_code)
+    link_id, normalised_url = link_result
 
     # Needs to be timezone-aware (UTC) to be passed to the DB
     utc_start = datetime.combine(from_date, time.min, tzinfo=timezone.utc) if from_date else None
@@ -90,6 +94,7 @@ async def get_analytics(
 
     return LinkAnalyticsResponse(
         short_ref_code=short_referrer_code,
+        normalised_url=normalised_url,
         from_date=from_date,
         to_date=to_date,
         creates=dict(creates_map),

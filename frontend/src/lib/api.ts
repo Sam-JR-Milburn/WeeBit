@@ -87,14 +87,15 @@ export const LinksApi = {
  *      ANALYTICS
  */
 
-interface GetLinkAnalyticsPayload {
+export interface GetLinkAnalyticsPayload {
     short_ref_code: string;
     from_date?: string | null;
     to_date?: string | null;
 }
 
-interface LinkAnalyticsResponse {
+export interface LinkAnalyticsResponse {
     short_ref_code: string;
+    normalised_url: string;
     from_date?: string | null;
     to_date: string;
     creates: Record<string, number>,

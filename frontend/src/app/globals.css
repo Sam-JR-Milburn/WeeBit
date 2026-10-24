@@ -3,3 +3,22 @@
 body {
   font-family: Helvetica, sans-serif;
 }
+
+.marquee-animation {
+  display: inline-block;
+  white-space: nowrap;
+  transform: translateX(0);
+}
+
+.group:hover .marquee-animation {
+  animation: marquee-scroll var(--scroll-duration, 8s) linear infinite;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}

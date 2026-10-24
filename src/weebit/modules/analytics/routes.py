@@ -56,7 +56,7 @@ async def get_analytics(
         A LinkAnalyticsResponse object containing statistics for a link/short code pair.
     """
 
-    min_date = date(2026, 1, 1)
+    min_date = date(2000, 1, 1)
     today = date.today()
 
     # Validate date queries
