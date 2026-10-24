@@ -13,6 +13,7 @@ class ErrorMetadata(BaseModel):
 # Keep track of all exceptions here for the error documentation registry.
 REGISTERED_EXCEPTIONS = [
     exceptions.InvalidUrlProblem,
+    exceptions.InvalidShortCodeProblem,
     exceptions.LinkNotFoundProblem,
     exceptions.CollisionLimitProblem,
     exceptions.InvalidDateProblem

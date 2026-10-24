@@ -1,16 +1,16 @@
 info:
-  name: "Submit link #1"
+  name: "Dangerous #3"
   type: http
-  seq: 1
+  seq: 3
 
 http:
   method: POST
-  url: "{{ServerName}}/api/links"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-
       {
-        "url": "https://en.wikipedia.org/wiki/Zen_of_Python#Principles"
+        "url": "vbscript:msgbox(\"hello\")"
       }
   auth: inherit
 

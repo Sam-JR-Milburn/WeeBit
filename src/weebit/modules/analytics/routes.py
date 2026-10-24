@@ -44,7 +44,7 @@ async def get_analytics(
     short_referrer_code: str,
     from_date: date = Query(default=None, description="Inclusive start date (YYYY-MM-DD) for the link statistics"),
     to_date: date = Query(default_factory=date.today, description="Inclusive end date (YYYY-MM-DD) for the link statistics"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db)
 ) -> analytics_schemas.LinkAnalyticsResponse:
     """
     Args:
@@ -52,9 +52,8 @@ async def get_analytics(
         from_date: An ISO 8601 (YYYY-MM-DD) inclusive lower bound.
         to_date: An ISO 8601 (YYYY-MM-DD) inclusive upper bound.
         db: Injected database session.
-        cache: Injected cache session.
     Returns:
-        A LinkAnalyticsResponse object containing statistics for a
+        A LinkAnalyticsResponse object containing statistics for a link/short code pair.
     """
 
     min_date = date(2026, 1, 1)

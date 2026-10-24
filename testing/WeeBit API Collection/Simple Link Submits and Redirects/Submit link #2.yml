@@ -1,16 +1,16 @@
 info:
-  name: "Dangerous #1"
+  name: "Submit link #2"
   type: http
-  seq: 5
+  seq: 2
 
 http:
   method: POST
-  url: "{{ServerName}}/api/links"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-
       {
-        "url": "javascript:alert(document.cookie)"
+        "url": "https://www.youtube.com/watch?v=dZ2NQ-xQINI"
       }
   auth: inherit
 

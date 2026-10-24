@@ -1,11 +1,8 @@
 from datetime import date, datetime, time, timezone
 
-from aiocache import BaseCache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
-from collections import defaultdict
 
 from weebit.modules.analytics import schemas as analytics_schemas
 from weebit.modules.analytics.schemas import LinkAnalyticsResponse
@@ -17,16 +14,16 @@ async def get_analytics(
     short_referrer_code: str,
     from_date: date,
     to_date: date,
-    db: AsyncSession,
+    db: AsyncSession
 ) -> analytics_schemas.LinkAnalyticsResponse:
     """
     Args:
-        short_referrer_code:
-        from_date:
-        to_date:
-        db:
+        short_referrer_code: A shortened string representing a stored URL.
+        from_date: An ISO 8601 (YYYY-MM-DD) inclusive lower bound.
+        to_date: An ISO 8601 (YYYY-MM-DD) inclusive upper bound.
+        db: Injected database session.
     Returns:
-        asdasdsa
+        A LinkAnalyticsResponse object containing statistics for a link/short code pair.
     """
 
     # Verify the link object exists

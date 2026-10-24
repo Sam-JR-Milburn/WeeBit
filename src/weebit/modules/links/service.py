@@ -4,11 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import BackgroundTasks
 
-from weebit.exceptions import InvalidUrlProblem, LinkNotFoundProblem, CollisionLimitProblem
+from weebit.exceptions import InvalidUrlProblem, LinkNotFoundProblem, CollisionLimitProblem, InvalidShortCodeProblem
 
 from weebit.modules.links import schemas, models
 from weebit.modules.links.processing.pipeline import normalise_url
-from weebit.modules.links.processing.encoding import url_to_int256, encode_base62, SHORT_CODE_DEFAULT_LENGTH, SHORT_CODE_MAX_LENGTH
+from weebit.modules.links.processing.encoding import url_to_int256, encode_base62, SHORT_CODE_DEFAULT_LENGTH, \
+    SHORT_CODE_MAX_LENGTH, VALID_CHARS
 
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
@@ -79,7 +80,7 @@ async def get_or_create_link(
     # Process through collision loop (7-10)
     for length in range(SHORT_CODE_DEFAULT_LENGTH, SHORT_CODE_MAX_LENGTH):
         short_ref_code = encoded[:length]
-        cache_src_key = f"code:{short_ref_code}"
+        cache_src_key = f"src:{short_ref_code}"
 
         # Check cache to check if it's available
         cached_payload_raw: str | None = await cache.get(key=cache_src_key)
@@ -170,11 +171,17 @@ async def redirect_with_src(
     """
 
     # Validate the SRC defensively.
-    if not short_ref_code or not (SHORT_CODE_DEFAULT_LENGTH <= len(short_ref_code) <= SHORT_CODE_MAX_LENGTH):
+    if not short_ref_code:
         raise LinkNotFoundProblem(short_ref_code=short_ref_code)
 
+    if not (SHORT_CODE_DEFAULT_LENGTH <= len(short_ref_code) <= SHORT_CODE_MAX_LENGTH):
+        raise InvalidShortCodeProblem(detail="Short code has an invalid format.")
+
+    if not(all(char in VALID_CHARS for char in short_ref_code)):
+        raise InvalidShortCodeProblem(detail="Short code has invalid characters.")
+
     # Check cache
-    cache_src_key = f"code:{short_ref_code}"
+    cache_src_key = f"src:{short_ref_code}"
     cached_payload_raw: str | None = await cache.get(key=cache_src_key)
     cached_payload: CachedLink | None = CachedLink.from_cache_safe(cached_payload_raw)
     if cached_payload:

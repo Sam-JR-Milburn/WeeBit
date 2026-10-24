@@ -1,0 +1,7 @@
+info:
+  name: Simple Link Analytics
+  type: folder
+  seq: 4
+
+request:
+  auth: inherit

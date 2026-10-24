@@ -1,11 +1,11 @@
 info:
   name: "Dangerous #2"
   type: http
-  seq: 6
+  seq: 2
 
 http:
   method: POST
-  url: "{{ServerName}}/api/links"
+  url: "{{ApiServerName}}/api/links"
   body:
     type: json
     data: |-

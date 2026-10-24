@@ -35,6 +35,15 @@ class InvalidUrlProblem(ProblemException):
     def __init__(self, detail: str):
         super().__init__(detail=detail)
 
+class InvalidShortCodeProblem(ProblemException):
+    status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
+    title: str = "Unprocessable Short Code"
+    type_uri: str = "/api/errors/invalid-short-code"
+    description: str = "The short referer code was invalid."
+
+    def __init__(self, detail: str):
+        super().__init__(detail=detail)
+
 class LinkNotFoundProblem(ProblemException):
     status_code: int = status.HTTP_404_NOT_FOUND
     title: str = "Link Not Found"
@@ -54,7 +63,7 @@ class CollisionLimitProblem(ProblemException):
         super().__init__(detail="Short code collision limit reached. I am statistically improbable.")
 
 class InvalidDateProblem(ProblemException):
-    status_code: int = status.HTTP_400_BAD_REQUEST # or 422 depending on preference
+    status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
     title: str = "Invalid Date Format"
     type_uri: str = "/api/errors/invalid-date"
     description: str = "The date(s) are malformed."
