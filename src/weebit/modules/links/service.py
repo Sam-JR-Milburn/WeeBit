@@ -41,11 +41,12 @@ async def background_log_task(link_id: int, event_type: models.LinkEventType, br
         valid_fingerprint = browser_fingerprint
 
     async with AsyncSessionLocal() as session:
-        analytic_event = models.Analytic(
-            link_id=link_id, event_type=event_type,
+        analytic = models.Analytic(
+            link_id=link_id,
+            event_type=event_type,
             browser_fingerprint=valid_fingerprint
         )
-        session.add(analytic_event)
+        session.add(analytic)
         await session.commit()
 
 async def get_or_create_link(
@@ -57,11 +58,11 @@ async def get_or_create_link(
 ) -> Tuple[models.Link, bool]:
     """Creates a link/short ref code pair or retrieves it if it exists.
     Args:
-        background_tasks: Injected background task object.
+        payload: Link submission.
         browser_fingerprint: string (or None, if not captured) of the browser's unique fingerprint.
+        background_tasks: Injected background task object.
         db: Injected database session.
         cache: Injected cache session.
-        payload: Link submission.
     Returns:
         A short code/link pair and whether it was created (True) or retrieved (False).
     """
@@ -159,7 +160,7 @@ async def redirect_with_src(
 ) -> models.Link:
     """Find and return url data from a short code.
     Args:
-        short_ref_code: A short string for redirection
+        short_ref_code: A short string for redirection.
         browser_fingerprint: string (or None, if not captured) of the browser's unique fingerprint.
         background_tasks: Injected background task object.
         db: Injected database session.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LinkApi } from "@/lib/api";
+import { api } from "@/lib/api";
 import {linkSubmissionSchema} from "@/lib/schemas";
 
 export default function SubmitLinkForm() {
@@ -32,8 +32,8 @@ export default function SubmitLinkForm() {
         setLoading(true);
 
         try {
-            const data = await LinkApi.createLink({ url: parsedUrl });
-            const redirectUrl = LinkApi.buildShareableUrl(data.short_ref_code);
+            const data = await api.Links.createLink({ url: parsedUrl });
+            const redirectUrl = api.Links.buildShareableUrl(data.short_ref_code);
             setShortUrl(redirectUrl);
         } catch(err: unknown) {
             setError((err as Error).message);

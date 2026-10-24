@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{ServerName}}/api/link"
+  url: "{{ServerName}}/api/links"
   body:
     type: json
     data: |-

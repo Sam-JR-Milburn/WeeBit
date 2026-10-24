@@ -1,3 +1,7 @@
+/**
+ *      LINKS
+ */
+
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 export interface LinkResponse {
@@ -40,10 +44,7 @@ async function getFingerprintJSId(): Promise<string | null> {
     }
 }
 
-/**
- * Object literal namespace for calling.
- */
-export const LinkApi = {
+export const LinksApi = {
     /**
      * Turn a URL into a Wee Bit.
      * @param payload the URL interface
@@ -78,4 +79,32 @@ export const LinkApi = {
         const baseUrl: string = getBaseUrl().replace(/\/$/, ""); // Strip trailing slashes, if any
         return `${baseUrl}/${ShortRefCode}`;
     }
+}
+
+/**
+ *      ANALYTICS
+ */
+
+interface LinkAnalyticsParams {
+    from_date?: string;
+    to_date?: string;
+}
+
+
+
+export const AnalyticsApi = {
+    /**
+     * ----
+     */
+
+    // ---
+
+}
+
+/**
+ * Object Literal Namespace for API calls
+ */
+export const api = {
+    Links: LinksApi,
+    Analytics: AnalyticsApi,
 }

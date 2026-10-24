@@ -1,5 +1,5 @@
 from typing import AsyncGenerator
-from aiocache import Cache, BaseCache
+from aiocache import BaseCache
 from aiocache.backends.redis import RedisCache
 from aiocache.serializers import JsonSerializer
 
@@ -19,7 +19,7 @@ redis_instance = CustomRedisCache(
     pool_max_size=20,
     serializer=JsonSerializer(),
 )
-async def get_redis() -> AsyncGenerator[BaseCache, None]:
+async def get_cache() -> AsyncGenerator[BaseCache, None]:
     try:
         yield redis_instance
     finally:

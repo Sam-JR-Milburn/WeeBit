@@ -1,29 +1,30 @@
 from fastapi import APIRouter, Depends, Request, Response, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 
-from weebit.config import Settings, settings
+from weebit.config import settings
 
-api_router = APIRouter(prefix="/api/links", tags=["Links API"])
-redirect_router = APIRouter(tags=["Short code redirect"])
+links_api_router = APIRouter(prefix="/api/links", tags=["Links API"])
+links_redirect_router = APIRouter(tags=["Short code redirect"])
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from weebit.database import get_db
 
 from aiocache import BaseCache
-from weebit.cache import get_redis
+from weebit.cache import get_cache
 
-from weebit.modules.links import schemas, service, models
+from weebit.modules.links import schemas as links_schemas, service, models
+from weebit import schemas as main_schemas
 
-@api_router.post(
+@links_api_router.post(
     path="",
-    response_model=schemas.LinkResponse,
+    response_model=links_schemas.LinkResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_200_OK: {
             "description": "If a short referrer code already exists for the link.",
             "content": {
                 "application/json": {
-                    "schema": schemas.LinkResponse.model_json_schema()
+                    "schema": links_schemas.LinkResponse.model_json_schema()
                 }
             }
         },
@@ -31,7 +32,7 @@ from weebit.modules.links import schemas, service, models
             "description": "If a new short referrer code link has been created.",
             "content": {
                 "application/json": {
-                    "schema": schemas.LinkResponse.model_json_schema()
+                    "schema": links_schemas.LinkResponse.model_json_schema()
                 }
             },
             "headers": {
@@ -45,7 +46,7 @@ from weebit.modules.links import schemas, service, models
             "description": "If there's been a general error in handling the link.",
             "content": {
                 "application/problem+json": {
-                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
         },
@@ -53,7 +54,7 @@ from weebit.modules.links import schemas, service, models
             "description": "If the link is non-HTTP (plaintext, 'javascript:', 'ftp://', ...) or self-referential.",
             "content": {
                 "application/problem+json": {
-                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
         },
@@ -61,12 +62,12 @@ from weebit.modules.links import schemas, service, models
     summary="Create a new short referrer link",
 )
 async def create_link(
-    payload: schemas.LinkCreate,
+    payload: links_schemas.LinkCreate,
     request: Request,
     response: Response,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    cache: BaseCache = Depends(get_redis)
+    cache: BaseCache = Depends(get_cache)
 ) -> models.Link:
     """Checks if a link exists in the system, returns a short ref code if it does and creates one if it doesn't.
     Args:
@@ -94,7 +95,9 @@ async def create_link(
         response.status_code = status.HTTP_200_OK
     return link_object
 
-@redirect_router.get(
+
+
+@links_redirect_router.get(
     path="/{short_referrer_code}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     responses={
@@ -115,7 +118,7 @@ async def create_link(
             "description": "Yield an error if the supplied SRC doesn't exist.",
             "content": {
                 "application/problem+json": {
-                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
         },
@@ -123,7 +126,7 @@ async def create_link(
             "description": "422 here is an artifact of the FastAPI route param signature. If it did fire, it would have valid shape however, due to exception catching.",
             "content": {
                 "application/problem+json": {
-                    "schema": schemas.ProblemDetailResponse.model_json_schema()
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
         },
@@ -135,11 +138,11 @@ async def redirect(
         request: Request,
         background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
-        cache: BaseCache = Depends(get_redis)
+        cache: BaseCache = Depends(get_cache)
 ) -> RedirectResponse:
     """Ingests the short referrer code from the route and redirects if valid.
     Args:
-        short_referrer_code:
+        short_referrer_code: A shortened string representing a stored URL.
         request: Request object - contains headers, among other items.
         background_tasks: Injected background task object.
         db: Injected database session.
