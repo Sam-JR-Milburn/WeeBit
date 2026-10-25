@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 
-const DOODLE_GLYPHS = ["😝", "😆", "😵‍💫", "😋", "👾", "🤖"];
+const DOODLE_GLYPHS = ["😆", "😵‍💫", "😋", "👾", "🤖"];
 
 // Totally vibecoded, but ehh.
 
