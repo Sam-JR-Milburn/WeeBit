@@ -61,14 +61,14 @@ export default function SubmitLinkForm() {
 
             {/* Input Section */}
             <form onSubmit={handleSubmit} className="w-full">
-                <div className="w-full h-14 sm:h-16 bg-[#141414] border border-[#ffffff] focus-within:border-white rounded-xl p-2 flex items-center justify-between transition gap-3 shadow-inner">
+                <div className="w-full h-14 sm:h-16 bg-[#141414] border border-[#ffffff] focus-within:border-white rounded-xl p-2 flex items-center justify-between transition gap-3 shadow-inner overflow-hidden">
                     <input
                         type="text"
                         required
                         value={submitUrl}
                         onChange={(e) => setSubmitUrl(e.target.value)}
                         placeholder="https://en.wikipedia.org/wiki/The_Dark_Side_of_the_Moon"
-                        className="flex-1 bg-transparent text-slate-100 text-base sm:text-lg pl-4 pr-2 outline-none truncate font-mono"
+                        className="flex-1 bg-transparent text-slate-100 text-base sm:text-lg pl-4 pr-2 outline-none truncate min-w-0"
                     />
                     <button
                         type="submit"
@@ -90,13 +90,13 @@ export default function SubmitLinkForm() {
 
                 {shortUrl && !error && (
                     <div className="w-full h-14 sm:h-16 bg-[#141414] border border-[#ffffff] rounded-xl p-2 flex items-center justify-between transition gap-3 shadow-inner">
-                        <span className="flex-1 font-mono text-base sm:text-lg text-emerald-400 pl-4 pr-2 truncate font-bold">
+                        <span className="flex-1 text-base sm:text-lg text-emerald-400 pl-4 pr-2 truncate font-bold">
                             {shortUrl}
                         </span>
                         <button
                             type="button"
                             onClick={handleCopy}
-                            className="h-full w-28 sm:w-32 bg-[#112c5a] hover:bg-[#1d4c9c] text-slate-200 font-semibold text-sm rounded-lg transition shrink-0 flex items-center justify-center shadow-md cursor-pointer"
+                            className="h-full w-28 sm:w-32 bg-[#112c5a] hover:bg-[#1d4c9c] text-white font-semibold text-sm rounded-lg transition shrink-0 flex items-center justify-center shadow-md cursor-pointer"
                         >
                             {copied ? "Copied!" : "Copy"}
                         </button>

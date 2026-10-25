@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-const DOODLE_GLYPHS = ["😝", "😆", "😵‍💫"];
+const DOODLE_GLYPHS = ["😆", "😵‍💫", "😋", "👾", "🤖"];
 
 // Totally vibecoded, but ehh.
 
@@ -20,36 +20,69 @@ interface DoodleBackgroundProps {
 
 export default function DoodleBackground({ children }: DoodleBackgroundProps) {
     const [tiles, setTiles] = useState<Tile[]>([]);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const items: Tile[] = [];
-        const rows = 8;
-        const cols = 12;
+        const container = containerRef.current;
+        if (!container) return;
 
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                const glyph = DOODLE_GLYPHS[Math.floor(Math.random() * DOODLE_GLYPHS.length)];
-                const topOffset = (Math.random() - 0.5) * 50;
-                const leftOffset = (Math.random() - 0.5) * 50;
-                const rotation = Math.random() * 60 - 30;
-                //const scale = Math.random() * 0.4 + 0.8;
+        const updateGrid = () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
 
-                items.push({
-                    id: `${r}-${c}`,
-                    glyph,
-                    top: `${(r * (100 / rows)) + (topOffset / rows)}%`,
-                    left: `${(c * (100 / cols)) + (leftOffset / cols)}%`,
-                    transform: `rotate(${rotation}deg)`,
-                });
+            // X and Y divisors determining spacing density (e.g., one emoji every ~100px)
+            const divisorX = 160;
+            const divisorY = 160;
+
+            const cols = Math.max(2, Math.floor(width / divisorX));
+            const rows = Math.max(2, Math.floor(height / divisorY)) + 1;
+
+            const items: Tile[] = [];
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const glyph = DOODLE_GLYPHS[(r + c) % DOODLE_GLYPHS.length];
+                    const rotation = ((r * 37 + c * 19) % 40) - 20;
+
+                    // Hexagonal staggering: offset every alternating row by 50% of divisorX
+                    const isEvenRow = r % 2 === 0;
+                    const xOffset = isEvenRow ? 0 : divisorX / 2;
+
+                    // Calculate precise percentage placement based on render dimensions
+                    const leftPercent = ((c * divisorX + xOffset) / width) * 100;
+                    const topPercent = ((r * divisorY) / Math.max(height, 200)) * 100;
+
+                    items.push({
+                        id: `${r}-${c}`,
+                        glyph,
+                        top: `${topPercent}%`,
+                        left: `${leftPercent}%`,
+                        transform: `rotate(${rotation}deg) scale(2.0)`,
+                    });
+                }
             }
-        }
-        setTiles(items);
+            setTiles(items);
+        };
+
+        // Initial calculation on mount
+        updateGrid();
+
+        // Re-calculate dynamically if the viewport or container size changes
+        const resizeObserver = new ResizeObserver(() => {
+            updateGrid();
+        });
+
+        resizeObserver.observe(container);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
     }, []);
 
     return (
-        <div className="relative flex-1 w-full bg-[#141414] overflow-hidden flex flex-col">
+        <div ref={containerRef} className="relative flex-1 w-full bg-[#141414] overflow-y-auto flex flex-col">
 
-            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="absolute inset-0 pointer-events-none min-h-full z-0 overflow-hidden">
                 {tiles.map((tile) => (
                     <span
                         key={tile.id}
