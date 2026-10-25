@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type LinkAnalyticsResponse } from "@/lib/api";
 import AnalyticsChart from "@/components/AnalyticsChart";
 
@@ -13,15 +13,15 @@ export default function AnalyticsLookupForm() {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleLookup = async (e: React.SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setError(null);
-
-        let trimmedCode = shortRefCode.trim();
+    // Grab the analytics for the wee bit
+    const lookupData = useCallback(async (lookupCode: string) => {
+        let trimmedCode = lookupCode.trim();
         if (!trimmedCode) {
             setError("Please enter a short reference code to inspect.");
             return;
         }
+
+        setError(null);
 
         // Transform if beginning with HOSTNAME/{short_ref_code}
         const FRONTEND_HOST = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3080";
@@ -48,12 +48,45 @@ export default function AnalyticsLookupForm() {
         } finally {
             setLoading(false);
         }
+
+    }, [fromDate, toDate]);
+
+    const handleLookup = async (e: React.SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        await lookupData(shortRefCode);
     };
 
     // Calculate metrics from the response.
-    const sumMetrics = (record: Record<string, number> = {}) => {
-        return Object.values(record).reduce((acc, val) => acc + val, 0);
-    };
+    const totalRedirects = useMemo(() => {
+        if (!analyticsData?.redirects) return 0;
+        return Object.values(analyticsData.redirects).reduce((acc, val) => acc + (Number(val) || 0), 0);
+    }, [analyticsData]);
+
+    const totalUniqueVisitors = useMemo(() => {
+        if (!analyticsData?.unique_visitors) return 0;
+        return Object.values(analyticsData.unique_visitors).reduce((acc, val) => acc + (Number(val) || 0), 0);
+    }, [analyticsData]);
+
+    const totalCreates = useMemo(() => {
+        if (!analyticsData?.creates) return 0;
+        return Object.values(analyticsData.creates).reduce((acc, val) => acc + (Number(val) || 0), 0);
+    }, [analyticsData]);
+
+
+    // F6 listener for refreshing
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "F6") {
+                e.preventDefault();
+                if (shortRefCode.trim()) {
+                    lookupData(shortRefCode);
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [shortRefCode, lookupData]);
 
     return (
         <div className="w-full max-w-3xl bg-[#112c5a] rounded-2xl p-8 sm:p-10 shadow-2xl flex flex-col gap-6 text-white">
@@ -66,14 +99,14 @@ export default function AnalyticsLookupForm() {
             </div>
 
             <form onSubmit={handleLookup} className="w-full flex flex-col gap-4">
-                <div className="w-full h-14 sm:h-16 bg-[#141414] border border-[#ffffff] focus-within:border-white rounded-xl p-2 flex items-center justify-between transition gap-3 shadow-inner">
+                <div className="w-full h-14 sm:h-16 bg-[#141414] border border-[#ffffff] focus-within:border-white rounded-xl p-2 flex items-center justify-between transition gap-3 shadow-inner overflow-hidden">
                     <input
                         type="text"
                         required
                         value={shortRefCode}
                         onChange={(e) => setShortRefCode(e.target.value)}
                         placeholder="1dSgEp3"
-                        className="flex-1 bg-transparent text-slate-100 text-base sm:text-lg pl-4 pr-2 outline-none truncate font-mono"
+                        className="flex-1 bg-transparent text-slate-100 text-base sm:text-lg pl-4 pr-2 outline-none truncate min-w-0"
                     />
                     <button
                         type="submit"
@@ -127,19 +160,19 @@ export default function AnalyticsLookupForm() {
                             <div className="w-full bg-[#141414] border border-[#ffffff] rounded-xl p-6 flex flex-col gap-5 text-slate-200 pt-6">
 
                                 {/* WeeBit + Url Section */}
-                                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-4 gap-4">
                                     <div>
                                         <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block">Wee Bit</span>
-                                        <span className="text-emerald-400 font-bold text-lg block font-mono">{analyticsData.short_ref_code}</span>
+                                        <span className="text-emerald-400 font-bold text-lg block">{analyticsData.short_ref_code}</span>
                                     </div>
 
-                                    <div className="w-full sm:w-64 text-left sm:text-right">
+                                    <div className="w-full sm:w-auto flex-1 sm:text-right min-w-0">
                                         <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block mb-1">RESOLVED URL</span>
 
                                         <div className="overflow-hidden relative w-full group">
                                             <div className="truncate group-hover:overflow-visible group-hover:text-clip">
                                                 <span
-                                                    className="font-mono text-emerald-400 font-bold text-lg whitespace-nowrap marquee-animation"
+                                                    className="text-emerald-400 font-bold text-lg whitespace-nowrap marquee-animation block truncate"
                                                     style={{
                                                         '--scroll-duration': `${Math.max(analyticsData.normalised_url.length * 0.08, 4)}s`
                                                     } as React.CSSProperties}
@@ -158,19 +191,19 @@ export default function AnalyticsLookupForm() {
                                     <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
                                         <span className="text-xs text-slate-400 block mb-1">Total Redirects</span>
                                         <span className="text-xl sm:text-2xl font-bold text-white">
-                                            {sumMetrics(analyticsData.redirects)}
+                                            {totalRedirects}
                                         </span>
                                     </div>
                                     <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
                                         <span className="text-xs text-slate-400 block mb-1">Unique Visitors</span>
                                         <span className="text-xl sm:text-2xl font-bold text-white">
-                                            {sumMetrics(analyticsData.unique_visitors)}
+                                            {totalUniqueVisitors}
                                         </span>
                                     </div>
                                     <div className="bg-[#112c5a]/40 border border-white/10 rounded-lg p-3 text-center">
                                         <span className="text-xs text-slate-400 block mb-1">Total Creations</span>
                                         <span className="text-xl sm:text-2xl font-bold text-white">
-                                            {sumMetrics(analyticsData.creates)}
+                                            {totalCreates}
                                         </span>
                                     </div>
                                 </div>
