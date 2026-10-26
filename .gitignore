@@ -22,3 +22,4 @@ seed_analytics.sh
 *.tfstate.backup
 
 backend.zip
+frontend.zip

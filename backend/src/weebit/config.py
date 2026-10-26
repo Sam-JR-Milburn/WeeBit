@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Misc config
-    HOST: str = Field(default="localhost", validation_alias="HOST")
-    PORT: int = Field(default=8080, validation_alias="PORT")
+    BACKEND_HOST: str = Field(default="localhost", validation_alias="BACKEND_HOST")
+    BACKEND_PORT: int = Field(default=8080, validation_alias="BACKEND_PORT")
 
     # DB config
     DB_USER: str = Field(validation_alias="POSTGRES_USER") # "weebit_srvc_acc"
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     @property
     def base_url(self) -> str:
-        return f"http://{self.HOST}:{self.PORT}"
+        return f"http://{self.BACKEND_HOST}:{self.BACKEND_PORT}"
 
     @property
     def database_url(self) -> str:
