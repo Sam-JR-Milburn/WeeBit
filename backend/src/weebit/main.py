@@ -13,6 +13,33 @@ from weebit.exceptions import ProblemException
 from weebit.config import settings
 from weebit.schemas import ProblemDetailResponse
 
+from pathlib import Path
+from alembic import command
+from alembic.config import Config
+def run_migrations():
+    '''Runs the Alembic migrations on startup.'''
+    sync_database_url = (
+        f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@"
+        f"{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    )
+
+    backend_dir = Path(__file__).resolve().parent.parent.parent
+    alembic_ini_path = backend_dir / "alembic.ini"
+    alembic_dir = backend_dir / "alembic"
+
+    alembic_cfg = Config(str(alembic_ini_path))
+    alembic_cfg.set_main_option("sqlalchemy.url", sync_database_url)
+    alembic_cfg.set_main_option("script_location", str(alembic_dir))
+
+    command.upgrade(alembic_cfg, "head")
+
+import asyncio
+from contextlib import asynccontextmanager
+@asynccontextmanager
+async def lifespan(api: FastAPI):
+    await asyncio.to_thread(run_migrations)
+    yield
+
 # Catch exceptions, reformat
 def register_problem_handlers(app: FastAPI):
     @app.exception_handler(ProblemException)
@@ -42,6 +69,7 @@ middleware = [
 app = FastAPI(
     title=settings.PROJECT_NAME,
     middleware=middleware,
+    lifespan=lifespan,
 )
 
 register_problem_handlers(app)
