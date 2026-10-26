@@ -27,8 +27,16 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     # Cache config
-    REDIS_URL: str = "localhost"
-    REDIS_PORT: int = 6379
+    CACHE_URL: str = Field(default="localhost", validation_alias="REDIS_URL")
+    CACHE_PORT: int = Field(default=6379, validation_alias="REDIS_PORT")
+    CACHE_PASSWORD: str | None = Field(default=None, validation_alias="REDIS_PASSWORD")
+
+    @property
+    def redis_url(self) -> str:
+        """Constructs a secure redis URL string for async clients (like redis-py)"""
+        if self.CACHE_PASSWORD:
+            return f"rediss://:{self.CACHE_PASSWORD}@{self.CACHE_URL}:{self.CACHE_PORT}"
+        return f"redis://{self.CACHE_URL}:{self.CACHE_PORT}"
     
     # Ingest allowed origins for frontend.
     allowed_origins: list[str] = Field(

@@ -20,10 +20,13 @@ services:
   redis:
     image: redis:7-alpine
     container_name: weebit_redis
+    command: redis-server --requirepass "${REDIS_PASSWORD}"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 2s
       timeout: 3s
       retries: 5

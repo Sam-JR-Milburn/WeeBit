@@ -29,3 +29,46 @@ down:
 reset:
     docker compose down -v
     rm -rf frontend/.next
+
+# Deploy to Terraform (IaC)
+
+backend-deploy:
+    az webapp deployment source config-zip \
+    --resource-group rg-weebit-production \
+    --name app-weebit-api \
+    --src backend.zip
+frontend-deploy:
+    az webapp deployment source config-zip \
+    --resource-group rg-weebit-production \
+    --name app-weebit-frontend \
+    --src frontend.zip
+
+# Optional: if you need the RedisPassword or PostgresPassword to be specific.
+set-secret name:
+    #!/usr/bin/env bash
+    read -sp "Enter value for {{name}}: " secret_value
+    echo ""
+    az keyvault secret set \
+      --vault-name kv-weebit-prod \
+      --name "{{name}}" \
+      --value "$secret_value"
+    echo "Successfully set secret '{{name}}' in kv-weebit-prod."
+
+clean-rg:
+    #!/usr/bin/env bash
+    if [ "$(az group exists --name rg-weebit-production)" = "true" ]; then
+        echo "Resource group exists. Deleting..."
+        az group delete --name rg-weebit-production --yes --no-wait
+    else
+        echo "Resource group 'rg-weebit-production' does not exist. Skipping."
+    fi
+
+clean-tf-state:
+    rm -rf .terraform .terraform.lock.hcl tfplan
+
+deploy: clean-rg clean-tf-state
+    terraform init
+    terraform plan -out=tfplan
+    terraform apply -auto-approve
+    backend-deploy
+    frontend-deploy

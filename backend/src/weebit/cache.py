@@ -13,8 +13,9 @@ class CustomRedisCache(RedisCache):
 
 # Redis
 redis_instance = CustomRedisCache(
-    endpoint=settings.REDIS_URL,
-    port=settings.REDIS_PORT,
+    endpoint=settings.CACHE_URL,
+    port=settings.CACHE_PORT,
+    password=settings.CACHE_PASSWORD,
     namespace="weebit",
     pool_max_size=20,
     serializer=JsonSerializer(),
