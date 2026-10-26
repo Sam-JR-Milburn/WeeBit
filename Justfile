@@ -5,11 +5,11 @@ db-up:
 
 # Make schema changes
 db-migrate env_file=".env":
-    ENV_FILE={{env_file}} uv run alembic upgrade head
+    PYTHONPATH=backend/src ENV_FILE={{env_file}} uv run alembic -c backend/alembic.ini upgrade head
 
 # Start the backend API
 backend-prod: db-up (db-migrate ".env")
-    ENV_FILE=.env uv run uvicorn weebit.main:app --reload --port 8080
+    PYTHONPATH=backend/src ENV_FILE=.env uv run uvicorn weebit.main:app --reload --port 8080
 
 ensure-frontend-is-built:
     @test -d frontend/.next || (echo "Frontend build not found. Building Next.js..." && cd frontend && npm run build)

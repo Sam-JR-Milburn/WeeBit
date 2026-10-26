@@ -13,3 +13,12 @@
 
 # Testing artifacts
 seed_analytics.sh
+
+# Exclude vars and IaC artifacts
+*.tfvars
+!*.tfvars.example
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+backend.zip
