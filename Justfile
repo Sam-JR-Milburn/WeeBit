@@ -69,6 +69,6 @@ clean-tf-state:
 deploy: clean-rg clean-tf-state
     terraform init
     terraform plan -out=tfplan
-    terraform apply -auto-approve
+    terraform apply -parallelism=2 -auto-approve tfplan
     backend-deploy
     frontend-deploy

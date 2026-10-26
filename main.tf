@@ -83,8 +83,13 @@ resource "azurerm_key_vault_secret" "backend_port" {
 }
 resource "azurerm_key_vault_secret" "allowed_origins" {
   name         = "AllowedOrigins"
-  value        = "[\"http://localhost:3080\",\"http://127.0.0.1:3080\"]"
+  value        = jsonencode([
+    "http://localhost:3080",
+    "http://127.0.0.1:3080",
+    "https://${azurerm_linux_web_app.frontend.default_hostname}"
+  ])
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 
 # App Service Plan for FastAPI Backend & NextJS Frontend (Linux)

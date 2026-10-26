@@ -18,8 +18,11 @@ seed_analytics.sh
 *.tfvars
 !*.tfvars.example
 .terraform/
-*.tfstate
+*.tfstate.*
 *.tfstate.backup
+*.tfplan
+crash.log
+.terraform.tfstate.lock.info
 
 backend.zip
 frontend.zip
