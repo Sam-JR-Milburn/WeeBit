@@ -1,6 +1,5 @@
 import os
-from typing import Union
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Overrides
@@ -9,8 +8,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Misc config
-    HOST: str = Field(default="localhost", validation_alias="HOST")
-    PORT: int = Field(default=8080, validation_alias="PORT")
+    BACKEND_HOST: str = Field(default="localhost", validation_alias="BACKEND_HOST")
+    BACKEND_PORT: int = Field(default=8080, validation_alias="BACKEND_PORT")
 
     # DB config
     DB_USER: str = Field(validation_alias="POSTGRES_USER") # "weebit_srvc_acc"
@@ -21,15 +20,23 @@ class Settings(BaseSettings):
 
     @property
     def base_url(self) -> str:
-        return f"http://{self.HOST}:{self.PORT}"
+        return f"http://{self.BACKEND_HOST}:{self.BACKEND_PORT}"
 
     @property
     def database_url(self) -> str:
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     # Cache config
-    REDIS_URL: str = "localhost"
-    REDIS_PORT: int = 6379
+    CACHE_URL: str = Field(default="localhost", validation_alias="REDIS_URL")
+    CACHE_PORT: int = Field(default=6379, validation_alias="REDIS_PORT")
+    CACHE_PASSWORD: str | None = Field(default=None, validation_alias="REDIS_PASSWORD")
+
+    @property
+    def redis_url(self) -> str:
+        """Constructs a secure redis URL string for async clients (like redis-py)"""
+        if self.CACHE_PASSWORD:
+            return f"rediss://:{self.CACHE_PASSWORD}@{self.CACHE_URL}:{self.CACHE_PORT}"
+        return f"redis://{self.CACHE_URL}:{self.CACHE_PORT}"
     
     # Ingest allowed origins for frontend.
     allowed_origins: list[str] = Field(

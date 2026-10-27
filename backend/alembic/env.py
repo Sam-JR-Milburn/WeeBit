@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import os
 from logging.config import fileConfig
@@ -7,10 +8,19 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from dotenv import load_dotenv
+from pathlib import Path
 
 # SQLAlchemy Base and Models
 from weebit.database import Base
 from weebit.modules.links.models import Link, Analytic # noqa: F401
+
+# Determine path
+
+current_dir = Path(__file__).resolve().parent
+src_dir = current_dir.parent / "src"
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
 
 # Setup Alembic config object and logging
 config = context.config
@@ -19,10 +29,14 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-from pathlib import Path
-from dotenv import load_dotenv
+# Find and inject the environment vars
 env_file_name = os.getenv("ENV_FILE", ".env")
-env_path = Path(__file__).resolve().parent.parent / env_file_name
+root_dir = current_dir.parent.parent
+env_path = root_dir / env_file_name
+
+if not env_path.exists():
+    env_path = current_dir.parent / env_file_name
+
 if env_path.exists():
     load_dotenv(env_path)
 
