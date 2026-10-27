@@ -32,16 +32,30 @@ reset:
 
 # Deploy to Terraform (IaC)
 
-backend-deploy:
-    az webapp deployment source config-zip \
+backend-build:
+    cd backend && \
+    python3 -m venv antenv && \
+    ./antenv/bin/pip install --upgrade pip && \
+    uv export --no-hashes --format requirements-txt -o requirements.txt && \
+    grep -v '^-e' requirements.txt > clean-requirements.txt && \
+    ./antenv/bin/pip install -r clean-requirements.txt && \
+    ./antenv/bin/pip install .
+
+backend-deploy: backend-build
+    az webapp start --resource-group rg-weebit-production --name app-weebit-api
+    az webapp deploy \
     --resource-group rg-weebit-production \
     --name app-weebit-api \
-    --src backend.zip
+    --src-path backend.zip
+    --type zip
+
 frontend-deploy:
-    az webapp deployment source config-zip \
+    az webapp start --resource-group rg-weebit-production --name app-weebit-frontend
+    az webapp deploy \
     --resource-group rg-weebit-production \
     --name app-weebit-frontend \
-    --src frontend.zip
+    --src-path frontend.zip
+    --type zip
 
 # Optional: if you need the RedisPassword or PostgresPassword to be specific.
 set-secret name:
@@ -66,9 +80,9 @@ clean-rg:
 clean-tf-state:
     rm -rf .terraform .terraform.lock.hcl tfplan
 
-deploy: clean-rg clean-tf-state
+deploy:
     terraform init
     terraform plan -out=tfplan
     terraform apply -parallelism=2 -auto-approve tfplan
-    backend-deploy
-    frontend-deploy
+    just backend-deploy
+    just frontend-deploy

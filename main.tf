@@ -55,38 +55,44 @@ resource "azurerm_key_vault_secret" "postgres_password" {
   name         = "PostgresPassword"
   value        = azurerm_postgresql_flexible_server.pg.administrator_password
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 resource "azurerm_key_vault_secret" "postgres_db" {
   name         = "PostgresDbName"
   value        = azurerm_postgresql_flexible_server_database.pg_db.name
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 resource "azurerm_key_vault_secret" "postgres_port" {
   name         = "PostgresPort"
   value        = "5432"
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 resource "azurerm_key_vault_secret" "postgres_host" {
   name         = "PostgresHost"
   value        = azurerm_postgresql_flexible_server.pg.fqdn
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 resource "azurerm_key_vault_secret" "backend_host" {
   name         = "BackendHost"
   value        = "app-weebit-api.azurewebsites.net"
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 resource "azurerm_key_vault_secret" "backend_port" {
   name         = "BackendPort"
   value        = "8080"
   key_vault_id = azurerm_key_vault.kv.id
+  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
 resource "azurerm_key_vault_secret" "allowed_origins" {
   name         = "AllowedOrigins"
   value        = jsonencode([
+    "https://app-weebit-frontend.azurewebsites.net",
     "http://localhost:3080",
-    "http://127.0.0.1:3080",
-    "https://${azurerm_linux_web_app.frontend.default_hostname}"
+    "http://127.0.0.1:3080"
   ])
   key_vault_id = azurerm_key_vault.kv.id
   depends_on   = [azurerm_key_vault_access_policy.terraform_user]
@@ -123,7 +129,7 @@ resource "azurerm_linux_web_app" "backend" {
   location            = azurerm_service_plan.asp.location
   service_plan_id     = azurerm_service_plan.asp.id
 
-  enabled = false
+  enabled = true
 
   identity {
     type = "SystemAssigned"
@@ -137,7 +143,8 @@ resource "azurerm_linux_web_app" "backend" {
   }
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE"	= "1"
+    "WEBSITE_RUN_FROM_PACKAGE"	= "0"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
     "POSTGRES_USER"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.postgres_user.name})"
     "POSTGRES_PASSWORD"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.postgres_password.name})"
     "POSTGRES_DB"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.postgres_db.name})"
@@ -193,7 +200,7 @@ resource "azurerm_linux_web_app" "frontend" {
   location		= azurerm_service_plan.asp.location
   service_plan_id	= azurerm_service_plan.asp.id
 
-  enabled = false
+  enabled = true
   
   identity {
     type = "SystemAssigned"
@@ -208,6 +215,7 @@ resource "azurerm_linux_web_app" "frontend" {
   
   app_settings = {
     "WEBSITE_RUN_FROM_PACKAGE" = "1"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
     "NEXT_PUBLIC_FRONTEND_URL" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.frontend_url_sec.name})"
     "NEXT_PUBLIC_API_URL"      = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.backend_url_sec.name})"
   }
@@ -246,6 +254,10 @@ resource "azurerm_postgresql_flexible_server" "pg" {
   administrator_password = random_password.db_password.result
   storage_mb             = 32768
   sku_name               = "B_Standard_B1ms"
+  
+  lifecycle {
+    ignore_changes = [zone]
+  }
 }
 
 # PostgreSQL Database inside the server
@@ -285,15 +297,17 @@ resource "azurerm_key_vault_secret" "redis_url" {
 }
 
 resource "azurerm_key_vault_secret" "redis_port" {
-  name         = "RedisPort"
-  value        = tostring(azurerm_managed_redis.redis.default_database[0].port)
-  key_vault_id = azurerm_key_vault.kv.id
-  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
+  name		= "RedisPort"
+  value_wo	= tostring(azurerm_managed_redis.redis.default_database[0].port)
+  value_wo_version = "1"
+  key_vault_id	= azurerm_key_vault.kv.id
+  depends_on	= [azurerm_key_vault_access_policy.terraform_user]
 }
 
 resource "azurerm_key_vault_secret" "redis_password" {
-  name         = "RedisPassword"
-  value        = azurerm_managed_redis.redis.default_database[0].primary_access_key
-  key_vault_id = azurerm_key_vault.kv.id
-  depends_on   = [azurerm_key_vault_access_policy.terraform_user]
+  name		= "RedisPassword"
+  value_wo	= azurerm_managed_redis.redis.default_database[0].primary_access_key
+  value_wo_version = "1"
+  key_vault_id	= azurerm_key_vault.kv.id
+  depends_on	= [azurerm_key_vault_access_policy.terraform_user]
 }
