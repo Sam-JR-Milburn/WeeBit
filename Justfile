@@ -3,9 +3,16 @@ set dotenv-load := true
 db-up:
     docker compose up -d --wait
 
+# Install
+install:
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    sudo apt install -y nodejs
+    cd frontend && npm install
+    cd backend && uv sync
+
 # Make schema changes
 db-migrate env_file=".env":
-    PYTHONPATH=backend/src ENV_FILE={{env_file}} uv run alembic -c backend/alembic.ini upgrade head
+    PYTHONPATH=backend/src ENV_FILE=.env uv --directory backend run uvicorn weebit.main:app --reload --port 8080
 
 # Start the backend API
 backend-prod: db-up (db-migrate ".env")
@@ -34,12 +41,11 @@ reset:
 
 backend-build:
     cd backend && \
-    python3 -m venv antenv && \
-    ./antenv/bin/pip install --upgrade pip && \
     uv export --no-hashes --format requirements-txt -o requirements.txt && \
     grep -v '^-e' requirements.txt > clean-requirements.txt && \
-    ./antenv/bin/pip install -r clean-requirements.txt && \
-    ./antenv/bin/pip install .
+    mv clean-requirements.txt requirements.txt
+    rm -f backend.zip
+    cd backend && zip -r ../backend.zip . -x ".venv/*" "antenv/*" "*.pyc" "__pycache__/*"
 
 backend-deploy: backend-build
     az webapp start --resource-group rg-weebit-production --name app-weebit-api
@@ -48,8 +54,12 @@ backend-deploy: backend-build
     --name app-weebit-api \
     --src-path backend.zip
     --type zip
+    
+frontend-build:
+    rm -f frontend.zip
+    cd frontend && zip -r ../frontend.zip . -x "node_modules/*" ".next/*"
 
-frontend-deploy:
+frontend-deploy: frontend-build
     az webapp start --resource-group rg-weebit-production --name app-weebit-frontend
     az webapp deploy \
     --resource-group rg-weebit-production \
@@ -79,6 +89,24 @@ clean-rg:
 
 clean-tf-state:
     rm -rf .terraform .terraform.lock.hcl tfplan
+
+tf-imports:
+    - terraform import azurerm_key_vault_access_policy.terraform_user \
+    "/subscriptions/adf59a08-f032-4e29-aeb0-654a4183ca7a/resourceGroups/rg-weebit-production/providers/Microsoft.KeyVault/vaults/kv-weebit-prod/objectId/c00a422b-673f-46a1-8596-fb8de9517376"
+    - terraform import azurerm_key_vault_secret.frontend_url_sec \
+    "https://kv-weebit-prod.vault.azure.net/secrets/NextPublicFrontendUrl/f896f4d7eb64413abbcb4b27f238dd57"
+    - terraform import azurerm_key_vault_secret.postgres_user "https://kv-weebit-prod.vault.azure.net/secrets/PostgresUser/cb5dc6061fde400785b0c3f44d63f159"
+    - terraform import azurerm_key_vault_secret.postgres_password "https://kv-weebit-prod.vault.azure.net/secrets/PostgresPassword/5019ddb0573645529defd23fca563f9c"
+    - terraform import azurerm_key_vault_secret.postgres_db "https://kv-weebit-prod.vault.azure.net/secrets/PostgresDbName/5261ca7aec0440a6aea462972d5e3fb4"
+    - terraform import azurerm_key_vault_secret.postgres_port "https://kv-weebit-prod.vault.azure.net/secrets/PostgresPort/9f2dba50476f41688fc73e0fe02fd505"
+    - terraform import azurerm_key_vault_secret.postgres_host "https://kv-weebit-prod.vault.azure.net/secrets/PostgresHost/dd7ac1ad94e8408da63285f54fe50308"
+    - terraform import azurerm_key_vault_secret.backend_host "https://kv-weebit-prod.vault.azure.net/secrets/BackendHost/48acc972054f46258f9e2a987862ee2a"
+    - terraform import azurerm_key_vault_secret.backend_port "https://kv-weebit-prod.vault.azure.net/secrets/BackendPort/b1bde9df6c2a45298d2e9e27040de40b"
+    - terraform import azurerm_key_vault_secret.allowed_origins "https://kv-weebit-prod.vault.azure.net/secrets/AllowedOrigins/f30a3cd825b64100b42889801e08bfad"
+    - terraform import azurerm_key_vault_secret.redis_url "https://kv-weebit-prod.vault.azure.net/secrets/RedisUrl/510fc90551a54c8a87522fff95784203"
+    - terraform import azurerm_key_vault_secret.redis_port "https://kv-weebit-prod.vault.azure.net/secrets/RedisPort/997602991a794bed83b4ab75dc8da158"
+    - terraform import azurerm_key_vault_secret.redis_password "https://kv-weebit-prod.vault.azure.net/secrets/RedisPassword/b17dc0943916494aa30bc1f5b6a515b0"
+    - terraform import azurerm_key_vault_secret.backend_url_sec "https://kv-weebit-prod.vault.azure.net/secrets/NextPublicApiUrl/cb548e13938f47eb9be1a51688b63655"
 
 deploy:
     terraform init

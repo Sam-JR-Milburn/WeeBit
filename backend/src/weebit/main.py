@@ -72,14 +72,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-register_problem_handlers(app)
-
-# Order is important
-app.include_router(links_api_router)
-app.include_router(analytics_api_router) # /api/analytics
-app.include_router(error_router) # /errors* before /{short_ref_code}
-app.include_router(links_redirect_router)
-
 @app.get("/health", tags=["Health Check Endpoint"])
 async def health_check():
     return { "status": "ok" }
@@ -88,3 +80,13 @@ async def health_check():
 async def root_to_docs():
     """Send root ('/') requests to /docs"""
     return RedirectResponse(url="/docs")
+
+register_problem_handlers(app)
+
+# Order is important
+app.include_router(links_api_router)
+app.include_router(analytics_api_router) # /api/analytics
+app.include_router(error_router) # /errors* before /{short_ref_code}
+app.include_router(links_redirect_router)
+
+

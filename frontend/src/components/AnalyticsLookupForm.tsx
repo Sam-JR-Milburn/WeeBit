@@ -24,7 +24,7 @@ export default function AnalyticsLookupForm() {
         setError(null);
 
         // Transform if beginning with HOSTNAME/{short_ref_code}
-        const FRONTEND_HOST = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3080";
+        const FRONTEND_HOST = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
         const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
         if (trimmedCode.startsWith(FRONTEND_HOST)) {

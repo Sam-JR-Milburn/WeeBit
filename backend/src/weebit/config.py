@@ -1,6 +1,7 @@
 import os
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
 
 # Overrides
 class Settings(BaseSettings):
@@ -39,14 +40,36 @@ class Settings(BaseSettings):
         return f"redis://{self.CACHE_URL}:{self.CACHE_PORT}"
     
     # Ingest allowed origins for frontend.
-    allowed_origins: list[str] = Field(
+    allowed_origins: str | list[str] = Field(
         default=[
             "http://localhost:3080",
             "http://127.0.0.1:3080"
         ],
         validation_alias="ALLOWED_ORIGINS",
     )
-
+    
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, value: Any) -> list[str]:
+        if isinstance(value, str):
+            # If it's a comma-separated string from Azure or .env, split and strip whitespace
+            if "," in value:
+                return [origin.strip() for origin in value.split(",") if origin.strip()]
+            # If it's a single string URL, turn it into a list
+            if value.startswith("http"):
+                return [value.strip()]
+            # If it's stored as a JSON string array, try parsing it safely
+            try:
+                import json
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return [str(o).strip() for o in parsed]
+            except Exception:
+                pass
+        elif isinstance(value, list):
+            return [str(o).strip() for o in value]
+        return value
+        
     # Append BASE_URL into allowed_origins.
     @model_validator(mode="after")
     def include_base_url_in_origins(self) -> "Settings":
