@@ -37,6 +37,14 @@ analytics_api_router = APIRouter(prefix="/api/analytics", tags=["Link Analytics 
                     "schema": main_schemas.ProblemDetailResponse.model_json_schema()
                 }
             }
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "If the database is unavailable.",
+            "content": {
+                "application/problem+json": {
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
         }
     }
 )

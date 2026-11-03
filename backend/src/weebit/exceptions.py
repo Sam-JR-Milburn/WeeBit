@@ -26,6 +26,16 @@ class ProblemException(Exception):
         self.extensions = extensions or {}
         super().__init__(self.detail)
 
+    @classmethod
+    def get_metadata(cls) -> dict[str, Any]:
+        """Returns the static registry metadata for this problem type."""
+        return {
+            "type_uri": cls.type_uri,
+            "title": cls.title,
+            "status": cls.status_code,
+            "description": cls.description,
+        }
+
 class InvalidUrlProblem(ProblemException):
     status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
     title: str = "Unprocessable URL"
@@ -67,6 +77,24 @@ class InvalidDateProblem(ProblemException):
     title: str = "Invalid Date Format"
     type_uri: str = "/api/errors/invalid-date"
     description: str = "The date(s) are malformed."
+
+    def __init__(self, detail: str):
+        super().__init__(detail=detail)
+
+class DatabaseUnavailableProblem(ProblemException):
+    status_code: int = status.HTTP_503_SERVICE_UNAVAILABLE
+    title: str = "Database Unavailable"
+    type_uri: str = "/api/errors/database-unavailable"
+    description: str = "Database unavailable."
+
+    def __init__(self, detail: str):
+        super().__init__(detail=detail)
+
+class ErrorNotFoundProblem(ProblemException):
+    status_code: int = status.HTTP_404_NOT_FOUND
+    title: str = "Error Not Found"
+    type_uri: str = "/api/errors/error-not-found"
+    description: str = "Error not found."
 
     def __init__(self, detail: str):
         super().__init__(detail=detail)

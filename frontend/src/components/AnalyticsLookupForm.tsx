@@ -24,7 +24,7 @@ export default function AnalyticsLookupForm() {
         setError(null);
 
         // Transform if beginning with HOSTNAME/{short_ref_code}
-        const FRONTEND_HOST = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3080";
+        const FRONTEND_HOST = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
         const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
         if (trimmedCode.startsWith(FRONTEND_HOST)) {
@@ -185,6 +185,12 @@ export default function AnalyticsLookupForm() {
                                 </div>
 
                                 <AnalyticsChart redirects={analyticsData.redirects} />
+                                
+                                <div className="text-right -mt-3">
+                                    <span className="text-[11px] text-slate-400 tracking-wide">
+                                        Tip: Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-800 border border-slate-700 rounded text-slate-300">F6</kbd> to refresh chart
+                                    </span>
+                                </div>
 
                                 {/* Metrics */}
                                 <div className="grid grid-cols-3 gap-3">

@@ -1,10 +1,13 @@
-from fastapi import FastAPI, Request
+from alembic.util import CommandError
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 from starlette.middleware import Middleware
 from starlette.responses import RedirectResponse
 
+from weebit.health import health_router
 from weebit.modules.analytics.routes import analytics_api_router
 from weebit.modules.errors.routes import error_router
 from weebit.modules.links.routes import links_api_router, links_redirect_router
@@ -13,14 +16,19 @@ from weebit.exceptions import ProblemException
 from weebit.config import settings
 from weebit.schemas import ProblemDetailResponse
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pathlib import Path
 from alembic import command
 from alembic.config import Config
+
 def run_migrations():
-    '''Runs the Alembic migrations on startup.'''
+    """Runs the Alembic migrations on startup."""
     sync_database_url = (
         f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@"
         f"{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+        f"?connect_timeout=3"
     )
 
     backend_dir = Path(__file__).resolve().parent.parent.parent
@@ -37,7 +45,12 @@ import asyncio
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(api: FastAPI):
-    await asyncio.to_thread(run_migrations)
+    try:
+        await asyncio.to_thread(run_migrations)
+    except (CommandError, SQLAlchemyError, OSError) as e:
+        logger.exception(f"Database migrations failed due to a DB or migration error: {e}")
+        raise RuntimeError(f"Startup aborted: Migration failed. Details: {e}") from e
+    
     yield
 
 # Catch exceptions, reformat
@@ -72,19 +85,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-register_problem_handlers(app)
-
-# Order is important
-app.include_router(links_api_router)
-app.include_router(analytics_api_router) # /api/analytics
-app.include_router(error_router) # /errors* before /{short_ref_code}
-app.include_router(links_redirect_router)
-
-@app.get("/health", tags=["Health Check Endpoint"])
-async def health_check():
-    return { "status": "ok" }
-
 @app.get("/", include_in_schema=False)
 async def root_to_docs():
     """Send root ('/') requests to /docs"""
     return RedirectResponse(url="/docs")
+
+register_problem_handlers(app) 
+
+# Order is important
+app.include_router(health_router)
+app.include_router(links_api_router)
+app.include_router(analytics_api_router) # /api/analytics
+app.include_router(error_router) # /errors* before /{short_ref_code}
+app.include_router(links_redirect_router)

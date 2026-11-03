@@ -89,11 +89,7 @@ resource "azurerm_key_vault_secret" "backend_port" {
 }
 resource "azurerm_key_vault_secret" "allowed_origins" {
   name         = "AllowedOrigins"
-  value        = jsonencode([
-    "https://app-weebit-frontend.azurewebsites.net",
-    "http://localhost:3080",
-    "http://127.0.0.1:3080"
-  ])
+  value        = "https://app-weebit-frontend.azurewebsites.net,http://localhost:3080,http://127.0.0.1:3080"
   key_vault_id = azurerm_key_vault.kv.id
   depends_on   = [azurerm_key_vault_access_policy.terraform_user]
 }
@@ -139,12 +135,22 @@ resource "azurerm_linux_web_app" "backend" {
     application_stack {
       python_version = "3.11"
     }
-    app_command_line = "python -m uvicorn weebit.main:app --host 0.0.0.0 --port 8080"
+    app_command_line = "PYTHONPATH=src python -m uvicorn weebit.main:app --host 0.0.0.0 --port 8080"
+    health_check_path = "/health"
+    health_check_eviction_time_in_min = 2
   }
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE"	= "0"
-    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT"		= "true"
+    "BUILD_FLAGS"				= "UseExpressBuild"
+    "ENABLE_ORYX_BUILD"				= "true"
+    "WEBSITE_RUN_FROM_PACKAGE"			= "0"
+    "PORT"					= "8080"
+    "WEBSITES_PORT"				= "8080"
+    "WEBSITES_CONTAINER_START_TIME_LIMIT"	= "600" # 10 minutes
+    "PYTHONUNBUFFERED"				= "1"
+    "SCM_COMMAND_IDLE_TIMEOUT"			="600"
+    
     "POSTGRES_USER"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.postgres_user.name})"
     "POSTGRES_PASSWORD"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.postgres_password.name})"
     "POSTGRES_DB"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.postgres_db.name})"
@@ -153,9 +159,12 @@ resource "azurerm_linux_web_app" "backend" {
     "BACKEND_HOST"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.backend_host.name})"
     "BACKEND_PORT"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.backend_port.name})"
     "ALLOWED_ORIGINS"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.allowed_origins.name})"
+    
     "REDIS_URL"			= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.redis_url.name})"
     "REDIS_PORT"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.redis_port.name})"
     "REDIS_PASSWORD"		= "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.redis_password.name})"
+    "REDIS_SSL"			= "true"
+    "REDIS_SSL_CERT_REQS"	= "required"
   }
 }
 
@@ -208,16 +217,18 @@ resource "azurerm_linux_web_app" "frontend" {
   
   site_config {
     application_stack {
-      node_version = "20-lts"
+      node_version = "22-lts"
     }
-    app_command_line = "npm start"
+    app_command_line			= "npm start"
+    health_check_path			= "/health"
+    health_check_eviction_time_in_min	= 2
   }
   
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
-    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
-    "NEXT_PUBLIC_FRONTEND_URL" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.frontend_url_sec.name})"
-    "NEXT_PUBLIC_API_URL"      = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=${azurerm_key_vault_secret.backend_url_sec.name})"
+    "WEBSITE_RUN_FROM_PACKAGE"		= "1"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT"	= "false"
+    #"NEXT_PUBLIC_FRONTEND_URL"		= "https://app-weebit-frontend.azurewebsites.net" # Statically built and included
+    #"NEXT_PUBLIC_API_URL"		= "https://app-weebit-api.azurewebsites.net"# Statically built and included
   }
 }
 
