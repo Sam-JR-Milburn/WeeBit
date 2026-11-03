@@ -12,16 +12,17 @@ authors = [
     { name = "Sam Milburn" }
 ]
 dependencies = [
-    "fastapi>=0.110.0",
-    "uvicorn[standard]>=0.28.0",
-    "pydantic>=2.6.0",
-    "sqlalchemy[asyncio]>=2.0.0",
-    "asyncpg>=0.29.0",
-    "alembic>=1.13.0",
-    "pydantic-settings>=2.15.0",
+    "fastapi==0.162.0",
+    "uvicorn[standard]==0.54.0",
+    "pydantic==2.14.2",
+    "sqlalchemy[asyncio]==2.1.6",
+    "asyncpg==0.32.0",
+    "alembic==1.20.1",
+    "pydantic-settings==2.16.2",
     "dotenv>=0.9.9",
     "aiocache[redis]>=0.12.3",
-    "starlette>=1.6.0",
+    "starlette==1.10.0",
+    "redis>=8.1.0",
 ]
 
 # Configure hatchling to find source code in src/weebit

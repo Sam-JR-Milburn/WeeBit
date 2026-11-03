@@ -1,9 +1,9 @@
 from typing import Tuple, Optional
-from aiocache import BaseCache
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import BackgroundTasks
 
+from weebit.cache import FailOpenTTLCache
 from weebit.exceptions import InvalidUrlProblem, LinkNotFoundProblem, CollisionLimitProblem, InvalidShortCodeProblem
 
 from weebit.modules.links import schemas, models
@@ -13,7 +13,6 @@ from weebit.modules.links.processing.encoding import url_to_int256, encode_base6
 
 DEFAULT_CACHE_HIT_TTL = 60*5 # 5 minutes cache time on access
 DEFAULT_CACHE_CREATE_TTL = 60*15 # 15 minutes cache time on creation
-
 
 
 # Define the cache data structure
@@ -32,7 +31,6 @@ class CachedLink(BaseModel):
             return cls.model_validate_json(raw_data)
         except (ValueError, TypeError):
             return None
-
 
 
 # Background helper for analytics
@@ -54,13 +52,12 @@ async def background_log_task(link_id: int, event_type: models.LinkEventType, br
         await session.commit()
 
 
-
 async def get_or_create_link(
         payload: schemas.LinkCreate,
         browser_fingerprint: str | None,
         background_tasks: BackgroundTasks,
         db: AsyncSession,
-        cache: BaseCache,
+        cache: FailOpenTTLCache,
 ) -> Tuple[models.Link, bool]:
     """Creates a link/short ref code pair or retrieves it if it exists.
     Args:
@@ -177,7 +174,7 @@ async def redirect_with_src(
         browser_fingerprint: str | None,
         background_tasks: BackgroundTasks,
         db: AsyncSession,
-        cache: BaseCache
+        cache: FailOpenTTLCache
 ) -> models.Link:
     """Find and return url data from a short code.
     Args:
@@ -198,7 +195,7 @@ async def redirect_with_src(
     cached_payload: CachedLink | None = CachedLink.from_cache_safe(cached_payload_raw)
     if cached_payload:
         try:
-            ttl = await cache.ttl(key=cache_src_key)
+            ttl = await cache.get_ttl(key=cache_src_key)
         except (AttributeError, TypeError):
             ttl = 0 # Fallback if cache backend doesn't support TTL lookup
 

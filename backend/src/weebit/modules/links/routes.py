@@ -12,11 +12,34 @@ links_redirect_router = APIRouter(tags=["Short Code Redirect"])
 from sqlalchemy.ext.asyncio import AsyncSession
 from weebit.database import get_db
 
-from aiocache import BaseCache
-from weebit.cache import get_cache
+from weebit.cache import get_failopen_cache, TTLCache, FailOpenTTLCache
 
 from weebit.modules.links import schemas as links_schemas, service, models
 from weebit import schemas as main_schemas
+
+def generate_server_browser_fingerprint(request: Request) -> str:
+    """
+    Args:
+        request: Request object that we can extract identity-correlated information
+    Returns:
+        64-char lower-quality browser fingerprint.
+        Lacks the quality of a client-side JS fingerprint.
+    """
+
+    user_agent =            request.headers.get("user-agent", "")
+    accept_language =       request.headers.get("accept-language", "")
+    accept_encoding =       request.headers.get("accept-encoding", "")
+
+    client_ip = "0.0.0.0"
+    if request.client and request.client.host:
+        client_ip = request.client.host
+
+    today_salt = date.today().isoformat() # More resilient to changed IP addresses (from day-to-day with IP leasing)
+
+    raw_signature = f"{client_ip}:{user_agent}:{accept_language}:{accept_encoding}:{today_salt}"
+    return hashlib.sha256(raw_signature.encode("UTF-8")).hexdigest()
+
+
 
 @links_api_router.post(
     path="",
@@ -61,6 +84,14 @@ from weebit import schemas as main_schemas
                 }
             }
         },
+        status.HTTP_503_SERVICE_UNAVAILABLE: { # Raised in get_db
+            "description": "If the DB is unavailable.",
+            "content": {
+                "application/problem+json": {
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
+        },
     },
     summary="Create a new short referrer link",
 )
@@ -70,7 +101,7 @@ async def create_link(
     response: Response,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    cache: BaseCache = Depends(get_cache)
+    cache: FailOpenTTLCache = Depends(get_failopen_cache)
 ) -> models.Link:
     """Checks if a link exists in the system, returns a short ref code if it does and creates one if it doesn't.
     Args:
@@ -97,30 +128,6 @@ async def create_link(
     else:
         response.status_code = status.HTTP_200_OK
     return link_object
-
-
-
-def generate_server_browser_fingerprint(request: Request) -> str:
-    """
-    Args:
-        request: Request object that we can extract identity-correlated information
-    Returns:
-        64-char lower-quality browser fingerprint.
-        Lacks the quality of a client-side JS fingerprint.
-    """
-
-    user_agent =            request.headers.get("user-agent", "")
-    accept_language =       request.headers.get("accept-language", "")
-    accept_encoding =       request.headers.get("accept-encoding", "")
-
-    client_ip = "0.0.0.0"
-    if request.client and request.client.host:
-        client_ip = request.client.host
-
-    today_salt = date.today().isoformat() # More resilient to changed IP addresses (from day-to-day with IP leasing)
-
-    raw_signature = f"{client_ip}:{user_agent}:{accept_language}:{accept_encoding}:{today_salt}"
-    return hashlib.sha256(raw_signature.encode("UTF-8")).hexdigest()
 
 @links_redirect_router.get(
     path="/{short_referrer_code}",
@@ -155,6 +162,14 @@ def generate_server_browser_fingerprint(request: Request) -> str:
                 }
             }
         },
+        status.HTTP_503_SERVICE_UNAVAILABLE: { # Raised in get_db
+            "description": "If the DB is unavailable.",
+            "content": {
+                "application/problem+json": {
+                    "schema": main_schemas.ProblemDetailResponse.model_json_schema()
+                }
+            }
+        },
     },
     summary="Redirect to a full URL from a short referrer code"
 )
@@ -163,7 +178,7 @@ async def redirect(
         request: Request,
         background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
-        cache: BaseCache = Depends(get_cache)
+        cache: FailOpenTTLCache = Depends(get_failopen_cache)
 ) -> RedirectResponse:
     """Ingests the short referrer code from the route and redirects if valid.
     Args:

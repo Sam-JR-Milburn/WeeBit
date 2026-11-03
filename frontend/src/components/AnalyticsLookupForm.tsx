@@ -185,6 +185,12 @@ export default function AnalyticsLookupForm() {
                                 </div>
 
                                 <AnalyticsChart redirects={analyticsData.redirects} />
+                                
+                                <div className="text-right -mt-3">
+                                    <span className="text-[11px] text-slate-400 tracking-wide">
+                                        Tip: Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-800 border border-slate-700 rounded text-slate-300">F6</kbd> to refresh chart
+                                    </span>
+                                </div>
 
                                 {/* Metrics */}
                                 <div className="grid grid-cols-3 gap-3">

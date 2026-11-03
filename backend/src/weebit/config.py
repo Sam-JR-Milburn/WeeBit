@@ -13,11 +13,11 @@ class Settings(BaseSettings):
     BACKEND_PORT: int = Field(default=8080, validation_alias="BACKEND_PORT")
 
     # DB config
-    DB_USER: str = Field(validation_alias="POSTGRES_USER") # "weebit_srvc_acc"
-    DB_PASSWORD: str = Field(validation_alias="POSTGRES_PASSWORD") # "fallbackpassword"
-    DB_HOST: str = Field(default="localhost", validation_alias="POSTGRES_HOST") # "localhost"
-    DB_PORT: int = Field(default=5432, validation_alias="POSTGRES_PORT") # 5432
-    DB_NAME: str = Field(validation_alias="POSTGRES_DB") # "weebit_db"
+    DB_USER: str = Field(default="weebit_srvc_acc", validation_alias="POSTGRES_USER")
+    DB_PASSWORD: str = Field(default="fallbackpassword", validation_alias="POSTGRES_PASSWORD")
+    DB_HOST: str = Field(default="localhost", validation_alias="POSTGRES_HOST")
+    DB_PORT: int = Field(default=5432, validation_alias="POSTGRES_PORT")
+    DB_NAME: str = Field(default="weebit_db", validation_alias="POSTGRES_DB")
 
     @property
     def base_url(self) -> str:
@@ -31,13 +31,27 @@ class Settings(BaseSettings):
     CACHE_URL: str = Field(default="localhost", validation_alias="REDIS_URL")
     CACHE_PORT: int = Field(default=6379, validation_alias="REDIS_PORT")
     CACHE_PASSWORD: str | None = Field(default=None, validation_alias="REDIS_PASSWORD")
+    CACHE_SSL: bool = Field(
+        default=False,
+        validation_alias="REDIS_SSL"
+    )
+    CACHE_SSL_CERT_REQS: str = Field(
+        default="required",
+        validation_alias="REDIS_SSL_CERT_REQS"
+    )
 
     @property
     def redis_url(self) -> str:
         """Constructs a secure redis URL string for async clients (like redis-py)"""
+        scheme="rediss" if self.CACHE_SSL else "redis"
+
+        from urllib.parse import quote
+
         if self.CACHE_PASSWORD:
-            return f"rediss://:{self.CACHE_PASSWORD}@{self.CACHE_URL}:{self.CACHE_PORT}"
-        return f"redis://{self.CACHE_URL}:{self.CACHE_PORT}"
+            return (
+                f"{scheme}://:{quote(self.CACHE_PASSWORD, safe='')}@{self.CACHE_URL}:{self.CACHE_PORT}"
+            )
+        return f"{scheme}://{self.CACHE_URL}:{self.CACHE_PORT}"
     
     # Ingest allowed origins for frontend.
     allowed_origins: str | list[str] = Field(
@@ -47,6 +61,24 @@ class Settings(BaseSettings):
         ],
         validation_alias="ALLOWED_ORIGINS",
     )
+    
+    @field_validator("BACKEND_PORT", "DB_PORT", "CACHE_PORT", mode="before")
+    @classmethod
+    def parse_port_defensively(cls, value: Any, info: Any) -> int:
+        if isinstance(value, str):
+            if value.startswith("@Microsoft.KeyVault"):
+                # Fallback defaults while Key Vault references resolve
+                field_defaults = {
+                    "BACKEND_PORT": 8080,
+                    "DB_PORT": 5432,
+                    "CACHE_PORT": 10000,
+                }
+                return field_defaults.get(info.field_name, 8080)
+            try:
+                return int(value.strip())
+            except ValueError:
+                pass
+        return int(value)
     
     @field_validator("allowed_origins", mode="before")
     @classmethod
